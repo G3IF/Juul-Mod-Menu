@@ -56,8 +56,12 @@ namespace Juul
         public static int PageBtnVer = 2;
         public static float ButtonCooldown = 0f;
         public static float IncrementCooldown = 0f;
+        public static List<GameObject> TrackedButtons = new List<GameObject>();
+        public static List<GameObject> TrackedCatButtons = new List<GameObject>();
+        public static GameObject[] TopPagePair = null;
+        public static GameObject[] BottomPagePair = null;
         public static bool IsOutlined = false;
-        public static bool IsRounded = true; 
+        public static bool IsRounded = true;
         public static bool IsCatLeft = true;
         public static bool IsCatRotated = true;
         public static bool MenuStart = false;
@@ -305,7 +309,7 @@ namespace Juul
                 if (Menu == null)
                 {
                     CreateFrame();
-                    Audios.Play("https://files.catbox.moe/tt0vjs.mp3", 0.35f);
+                    Audios.Play("Home", 0.35f);
                     Menu.AddComponent<ScaleInAnimation>();
                     IsMenuOpen = true;
 
@@ -348,7 +352,7 @@ namespace Juul
                                             {
                                                 IncrementCooldown = Time.time + 0.15f;
                                                 incrementalCollider.onClick?.Invoke();
-                                                Audios.Play("https://files.catbox.moe/5hoxyg.mp3");
+                                                Audios.Play("Select");
                                                 RebuildMenu();
                                             }
                                             break;
@@ -361,7 +365,7 @@ namespace Juul
                                             {
                                                 ButtonCooldown = Time.time + 0.2345f;
                                                 buttonCollider.onClick?.Invoke();
-                                                Audios.Play("https://files.catbox.moe/5hoxyg.mp3");
+                                                Audios.Play("Select");
                                                 RebuildMenu();
                                             }
                                             break;
@@ -568,6 +572,10 @@ namespace Juul
 
             BtnIndex = 0;
             CatIndex = 0;
+            TrackedButtons.Clear();
+            TrackedCatButtons.Clear();
+            TopPagePair = null;
+            BottomPagePair = null;
 
             if (Buttons.Modules != null)
             {
@@ -632,13 +640,121 @@ namespace Juul
                 buttonCollider2.onClick = NextPage;
                 AddText(">", TextSize, nextObj.transform.position + new Vector3(SmFl, 0f, SmFl), default(Vector3));
 
-                if (PageBtnVer == 3) BtnIndex++;
+                if (PageBtnVer == 3)
+                {
+                    TopPagePair = new GameObject[] { prevObj, nextObj };
+                    BtnIndex++;
+                }
+                else
+                {
+                    BottomPagePair = new GameObject[] { prevObj, nextObj };
+                }
             }
             else if (PageBtnVer == 1)
             {
                 BtnIndex = MaxButtons;
                 AddCustomButton("<<<<<<", PreviousPage);
                 AddCustomButton(">>>>>>", NextPage);
+            }
+
+            if (IsRounded)
+            {
+                ApplyButtonRounding();
+            }
+        }
+
+        public static float ButtonBevel = 0.01f;
+
+        public static void ApplyButtonRounding()
+        {
+            bool hasTopPair = TopPagePair != null;
+            bool hasBottomPair = BottomPagePair != null;
+            if (TrackedButtons.Count == 1 && !hasTopPair && !hasBottomPair)
+            {
+                RoundedCorners c = TrackedButtons[0].AddComponent<RoundedCorners>();
+                c.bevel = ButtonBevel;
+                c.topLeft = true;
+                c.topRight = true;
+                c.bottomLeft = true;
+                c.bottomRight = true;
+            }
+            else if (TrackedButtons.Count > 0)
+            {
+                if (!hasTopPair)
+                {
+                    RoundedCorners c = TrackedButtons[0].AddComponent<RoundedCorners>();
+                    c.bevel = ButtonBevel;
+                    c.topLeft = false;
+                    c.topRight = true;
+                    c.bottomLeft = false;
+                    c.bottomRight = true;
+                }
+                if (!hasBottomPair && TrackedButtons.Count > 1)
+                {
+                    RoundedCorners c = TrackedButtons[TrackedButtons.Count - 1].AddComponent<RoundedCorners>();
+                    c.bevel = ButtonBevel;
+                    c.topLeft = true;
+                    c.topRight = false;
+                    c.bottomLeft = true;
+                    c.bottomRight = false;
+                }
+            }
+            if (hasTopPair)
+            {
+                RoundedCorners cL = TopPagePair[0].AddComponent<RoundedCorners>();
+                cL.bevel = ButtonBevel;
+                cL.topLeft = false;
+                cL.topRight = false;
+                cL.bottomLeft = false;
+                cL.bottomRight = true;
+
+                RoundedCorners cR = TopPagePair[1].AddComponent<RoundedCorners>();
+                cR.bevel = ButtonBevel;
+                cR.topLeft = false;
+                cR.topRight = true;
+                cR.bottomLeft = false;
+                cR.bottomRight = false;
+            }
+            if (TrackedCatButtons.Count == 1)
+            {
+                RoundedCorners c = TrackedCatButtons[0].AddComponent<RoundedCorners>();
+                c.bevel = ButtonBevel;
+                c.topLeft = true;
+                c.topRight = true;
+                c.bottomLeft = true;
+                c.bottomRight = true;
+            }
+            else if (TrackedCatButtons.Count > 1)
+            {
+                RoundedCorners cFirst = TrackedCatButtons[0].AddComponent<RoundedCorners>();
+                cFirst.bevel = ButtonBevel;
+                cFirst.topLeft = false;
+                cFirst.topRight = true;
+                cFirst.bottomLeft = false;
+                cFirst.bottomRight = true;
+
+                RoundedCorners cLast = TrackedCatButtons[TrackedCatButtons.Count - 1].AddComponent<RoundedCorners>();
+                cLast.bevel = ButtonBevel;
+                cLast.topLeft = true;
+                cLast.topRight = false;
+                cLast.bottomLeft = true;
+                cLast.bottomRight = false;
+            }
+            if (hasBottomPair)
+            {
+                RoundedCorners cL = BottomPagePair[0].AddComponent<RoundedCorners>();
+                cL.bevel = ButtonBevel;
+                cL.topLeft = false;
+                cL.topRight = false;
+                cL.bottomLeft = true;
+                cL.bottomRight = false;
+
+                RoundedCorners cR = BottomPagePair[1].AddComponent<RoundedCorners>();
+                cR.bevel = ButtonBevel;
+                cR.topLeft = true;
+                cR.topRight = false;
+                cR.bottomLeft = false;
+                cR.bottomRight = false;
             }
         }
 
@@ -809,6 +925,7 @@ namespace Juul
                 RebuildMenu();
             };
             AddText(name, TextSize, gameObject.transform.position + new Vector3(SmFl, 0f, SmFl), new Vector3(IsCatRotated ? (IsCatLeft ? (-45f) : 45f) : 0f, 0f, 0f));
+            TrackedCatButtons.Add(gameObject);
             CatIndex++;
         }
 
@@ -831,6 +948,7 @@ namespace Juul
             ButtonCollider buttonCollider = gameObject.AddComponent<ButtonCollider>();
             buttonCollider.onClick = callback;
             AddText(name, TextSize, gameObject.transform.position + new Vector3(SmFl, 0f, SmFl), default(Vector3));
+            TrackedButtons.Add(gameObject);
             BtnIndex++;
         }
 
@@ -943,6 +1061,7 @@ namespace Juul
             }
 
             AddText(name, TextSize, gameObject.transform.position + new Vector3(SmFl, 0f, SmFl), default(Vector3));
+            TrackedButtons.Add(gameObject);
             BtnIndex++;
         }
 
@@ -1019,47 +1138,60 @@ namespace Juul
             public float multY = 0f;
             public float bevelX = 0f;
             public float bevelY = 0f;
+
             private Renderer sourceRenderer;
             private GradientSetter gradientSetter;
             private ColorSetter colorSetter;
+
             void Start()
             {
                 sourceRenderer = GetComponent<Renderer>();
                 if (!sourceRenderer) return;
+
                 gradientSetter = GetComponent<GradientSetter>();
                 colorSetter = GetComponent<ColorSetter>();
+
                 float sx = Mathf.Max(transform.localScale.y, 0.001f);
                 float sy = Mathf.Max(transform.localScale.z, 0.001f);
                 multX = (1f / sx) * (1f + Mathf.Log(sx + 1f));
                 multY = (1f / sy) * (1f + Mathf.Log(sy + 1f));
                 bevelX = bevel * multX;
                 bevelY = bevel * multY;
+
                 CreateGeometry();
                 sourceRenderer.enabled = false;
             }
+
             void CreateGeometry()
             {
                 Transform parent = transform;
-                CreateCube(parent, Vector3.zero, new Vector3(1f, 1f - bevelX * 2f, 1f), false, -1);
-                CreateCube(parent, Vector3.zero, new Vector3(1f, 1f, 1f - bevelY * 2f), false, -1);
+
+                float overlap = 0.005f;
+
+                CreateCube(parent, Vector3.zero, new Vector3(1f, 1f - bevelX * 2f + overlap, 1f), false, -1);
+                CreateCube(parent, new Vector3(0f, -0.5f + bevelX * 0.5f, 0f), new Vector3(1f, bevelX + overlap, 1f - bevelY * 2f + overlap), false, -1);
+                CreateCube(parent, new Vector3(0f, 0.5f - bevelX * 0.5f, 0f), new Vector3(1f, bevelX + overlap, 1f - bevelY * 2f + overlap), false, -1);
+
                 bool[] enabled = { topLeft, bottomLeft, topRight, bottomRight };
                 Vector3[] offsets =
                 {
                     new Vector3(0f, -0.5f + bevelX, -0.5f + bevelY),
-                    new Vector3(0f, 0.5f - bevelX, -0.5f + bevelY),
-                    new Vector3(0f, -0.5f + bevelX, 0.5f - bevelY),
-                    new Vector3(0f, 0.5f - bevelX, 0.5f - bevelY)
+                    new Vector3(0f,  0.5f - bevelX, -0.5f + bevelY),
+                    new Vector3(0f, -0.5f + bevelX,  0.5f - bevelY),
+                    new Vector3(0f,  0.5f - bevelX,  0.5f - bevelY)
                 };
+
                 for (int i = 0; i < 4; i++)
                 {
                     bool isTop = (i == 2 || i == 3);
+
                     if (enabled[i])
                     {
                         GameObject c = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
                         Destroy(c.GetComponent<Collider>());
                         c.transform.SetParent(parent, false);
-                        c.transform.localRotation = Quaternion.Euler(0, 0, 90);
-                        c.transform.localScale = new Vector3(bevelX * 2f, 0.5f, bevelY * 2f);
+                        c.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
+                        c.transform.localScale = new Vector3(bevelX * 2f + overlap, 0.5f, bevelY * 2f + overlap);
                         c.transform.localPosition = offsets[i];
                         ConfigureRenderer(c.GetComponent<Renderer>(), true, isTop ? 0 : 1);
                     }
@@ -1068,12 +1200,13 @@ namespace Juul
                         GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
                         Destroy(cube.GetComponent<Collider>());
                         cube.transform.SetParent(parent, false);
-                        cube.transform.localScale = new Vector3(1f, bevelX * 2f, bevelY * 2f);
+                        cube.transform.localScale = new Vector3(1f, bevelX * 2f + overlap, bevelY * 2f + overlap);
                         cube.transform.localPosition = offsets[i];
                         ConfigureRenderer(cube.GetComponent<Renderer>(), true, isTop ? 0 : 1);
                     }
                 }
             }
+
             void CreateCube(Transform parent, Vector3 pos, Vector3 scale, bool isCorner, int cornerType)
             {
                 GameObject g = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -1083,6 +1216,7 @@ namespace Juul
                 g.transform.localScale = scale;
                 ConfigureRenderer(g.GetComponent<Renderer>(), isCorner, cornerType);
             }
+
             void ConfigureRenderer(Renderer r, bool isCorner, int cornerType)
             {
                 Material oldMaterial = r.material;
@@ -1094,6 +1228,7 @@ namespace Juul
                     GradientSetter gs = r.gameObject.AddComponent<GradientSetter>();
                     gs.brightness = gradientSetter.brightness;
                     gs.isVertical = gradientSetter.isVertical;
+
                     if (isCorner)
                     {
                         float bevelOffset = bevel * gradientSetter.gradientOffset;
@@ -1119,7 +1254,9 @@ namespace Juul
                     ColorSetter cs = r.gameObject.AddComponent<ColorSetter>();
                     cs.brightness = colorSetter.brightness;
                     cs.colorOffset = colorSetter.colorOffset;
+                    if (isCorner) cs.renderQueueOffset = 3;
                 }
+
                 r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 r.receiveShadows = false;
                 r.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
@@ -1273,11 +1410,14 @@ namespace Juul
             [Header("Color Settings")]
             [SerializeField, Range(0f, 1f)] public float brightness = 1f;
             [SerializeField, Range(0f, 10f)] public float colorOffset = 0f;
+            public int renderQueueOffset = 0;
+
             private Renderer rend;
             private Material instanceMaterial;
             private Color lastAppliedColor;
             private float updateTimer = 0f;
             private const float updateInterval = 0.033f;
+
             private void Start()
             {
                 rend = GetComponent<Renderer>();
@@ -1286,16 +1426,17 @@ namespace Juul
                 instanceMaterial = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
                 instanceMaterial.SetFloat("_Surface", 1);
                 instanceMaterial.SetFloat("_Blend", 0);
-                instanceMaterial.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
-                instanceMaterial.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
-                instanceMaterial.SetFloat("_ZWrite", 0);
+                instanceMaterial.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                instanceMaterial.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                instanceMaterial.SetFloat("_ZWrite", 1);
                 instanceMaterial.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-                instanceMaterial.renderQueue = (int)RenderQueue.Transparent;
+                instanceMaterial.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent + renderQueueOffset;
 
                 rend.material = instanceMaterial;
                 lastAppliedColor = new Color(0f, 0f, 0f, 1f - brightness);
                 instanceMaterial.color = lastAppliedColor;
             }
+
             private void Update()
             {
                 if (rend == null || instanceMaterial == null || !isActiveAndEnabled) return;
@@ -1311,10 +1452,12 @@ namespace Juul
                     }
                 }
             }
+
             public void SetBrightness(float value)
             {
                 brightness = Mathf.Clamp01(value);
             }
+
             private void OnDestroy()
             {
                 if (instanceMaterial != null)
