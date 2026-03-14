@@ -12,7 +12,7 @@ namespace Juul
     {
         public const string guid = "Juul";
         public const string title = "Juul";
-        public const string version = "1.0";
+        public const string version = "2.0";
         private GameObject coreObject;
 
         void Awake()
@@ -67,7 +67,7 @@ namespace Juul
             }
             try
             {
-                Audios.Play("https://files.catbox.moe/7ttt6n.mp3");
+                Audios.Play("Loaded");
             }
             catch (Exception e)
             {

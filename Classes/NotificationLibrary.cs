@@ -31,8 +31,8 @@ namespace Juul
         private const int PF_W = 350;
         private const int PF_H = 4;
 
-        private static readonly Color textWhite = new Color(1f, 1f, 1f, 1f);
-        private static readonly Color textGrey = new Color(0.85f, 0.85f, 0.85f, 1f);
+        private static readonly Color textWhite = new Color(0.5f, 0.5f, 0.5f, 1f);
+        private static readonly Color textGrey = new Color(0.5f, 0.5f, 0.5f, 1f);
         private static readonly List<NotificationUI> activeNotifications = new List<NotificationUI>();
         private static readonly List<ScreenNotification> screenNotifications = new List<ScreenNotification>();
         private const int MAX_NOTIFICATIONS = 2;

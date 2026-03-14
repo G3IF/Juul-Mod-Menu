@@ -59,7 +59,7 @@ namespace Juul
             {
                 Core.ButtonCooldown = Time.time + 0.2345f;
                 onClick?.Invoke();
-                Audios.Play("https://files.catbox.moe/5hoxyg.mp3");
+                Audios.Play("Select");
                 StartCoroutine(RebuildNextFrame());
             }
         }
@@ -79,7 +79,7 @@ namespace Juul
             {
                 Core.IncrementCooldown = Time.time + 0.15f;
                 onClick?.Invoke();
-                Audios.Play("https://files.catbox.moe/5hoxyg.mp3");
+                Audios.Play("Select");
                 StartCoroutine(RebuildNextFrame());
             }
         }

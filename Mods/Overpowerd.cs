@@ -102,15 +102,7 @@ namespace Juul
             for (int i = 0; i < times; i++) onDeploy.Invoke();
         }
 
-        public static void AddBarrel()
-        {
-            CosmeticsController.instance.currentCart.Insert(0, CosmeticsController.instance.GetItemFromDict("LMAPE."));
-        }
-        
-        
-   
-
-        public static void SpamDeploythxboowomp(DeployableObject deployable)
+       public static void SpamDeploythxboowomp(DeployableObject deployable)
         {
             UnityEvent value = Traverse.Create(deployable).Field("_onDeploy").GetValue<UnityEvent>();
             for (int i = 0; i > 2; i++)
@@ -126,73 +118,183 @@ namespace Juul
                 value.Invoke();
             }
         }
-        public static void FlingWithElff(VRRig who)
+        private static void SendBarrel(VRRig target, Vector3 velocity)
         {
             DeployableObject deployable = GameObject.Find("Player Objects/Local VRRig/Local Gorilla Player/GorillaPlayerNetworkedRigAnchor/rig/body/shoulder.R/upper_arm.R/forearm.R/Right Arm Item Anchor/DropZoneAnchor/HoldableThrowableBarrelLeprechaun_Anchor(Clone)/LMAPE.").GetComponent<DeployableObject>();
-            var signal = Traverse.Create(deployable).Field("_deploySignal").GetValue<PhotonSignal<long, int, long>>();
-            var signal2 = deployable._deploySignal;
             DeployedChild child = GetChild(deployable);
-            Rigidbody value = Traverse.Create(child).Field("_rigidbody").GetValue<Rigidbody>();
+            Rigidbody rb = Traverse.Create(child).Field("_rigidbody").GetValue<Rigidbody>();
             object[] array = PhotonUtils.FetchScratchArray(5);
             array[0] = deployable._deploySignal._signalID;
             array[1] = PhotonNetwork.ServerTimestamp;
-            array[2] = BitPackUtils.PackWorldPosForNetwork(who.bodyTransform.transform.position + new Vector3(0, -0.3f));
+            array[2] = BitPackUtils.PackWorldPosForNetwork(target.bodyTransform.transform.position + new Vector3(0, -0.3f));
             array[3] = 469893376;
-            array[4] = BitPackUtils.PackWorldPosForNetwork(who.bodyTransform.transform.up * 9998.99f);
-            PhotonNetwork.RaiseEvent(177, array, TargetedWCO(who.Creator.ActorNumber, EventCaching.AddToRoomCacheGlobal), STS());
-            child.Deploy(deployable, who.bodyTransform.transform.position + new Vector3(0, -0.3f), Quaternion.identity, who.bodyTransform.transform.up * 9998.99f, false);
+            array[4] = BitPackUtils.PackWorldPosForNetwork(velocity);
+            PhotonNetwork.RaiseEvent(177, array, TargetedWCO(target.Creator.ActorNumber, EventCaching.AddToRoomCacheGlobal), STS());
+            child.Deploy(deployable, target.bodyTransform.transform.position + new Vector3(0, -0.3f), Quaternion.identity, velocity, false);
             deployable.DeployChild();
             SpamDeploythxboowomp(deployable);
-            value.linearDamping = 0f;
-            value.angularDamping = 0f;
-            value.AddForce(new Vector3(0, 10000, 0), ForceMode.Force);
-            value.AddForce(new Vector3(0, 10000, 0), ForceMode.Impulse);
-            value.AddForce(new Vector3(0, 10000, 0), ForceMode.VelocityChange);
-            value.AddForce(new Vector3(0, 10000, 0), ForceMode.Acceleration);
-            value.linearVelocity = who.bodyTransform.transform.up * 9998.99f;
-            value.solverVelocityIterations = 9998;
-            value.detectCollisions = false;
-            value.inertiaTensor = who.bodyTransform.transform.up * 9998.99f;
-            value.AddForce(new Vector3(0, 10000, 0), ForceMode.Force);
-            value.AddForce(new Vector3(0, 10000, 0), ForceMode.Impulse);
-            value.AddForce(new Vector3(0, 10000, 0), ForceMode.VelocityChange);
-            value.AddForce(new Vector3(0, 10000, 0), ForceMode.Acceleration);
+            rb.linearDamping = 0f;
+            rb.angularDamping = 0f;
+            rb.linearVelocity = velocity;
+            rb.solverVelocityIterations = 9998;
+            rb.detectCollisions = false;
+            rb.inertiaTensor = target.bodyTransform.transform.up * 9998.99f;
+            rb.AddForce(velocity * 100f, ForceMode.Impulse);
             child.ReturnToParent(2f);
         }
 
-        public static void ElfFlingGun()
+
+
+        private static void SendBarrelFixIDK(VRRig target, Vector3 velocity)
+        {
+            DeployableObject deployable = FindBarrel();
+            if (deployable == null) return;
+            DeployedChild child = GetChild(deployable);
+            if (child == null) return;
+            Rigidbody rb = Traverse.Create(child).Field("_rigidbody").GetValue<Rigidbody>();
+            if (rb == null) return;
+            object[] array = PhotonUtils.FetchScratchArray(5);
+            array[0] = deployable._deploySignal._signalID;
+            array[1] = PhotonNetwork.ServerTimestamp;
+            array[2] = BitPackUtils.PackWorldPosForNetwork(target.bodyTransform.position + new Vector3(0, -0.3f, 0));
+            array[3] = BitPackUtils.PackQuaternionForNetwork(Quaternion.identity);
+            array[4] = BitPackUtils.PackWorldPosForNetwork(velocity);
+            PhotonNetwork.RaiseEvent(177, array,
+                TargetedWCO(target.Creator.ActorNumber, EventCaching.AddToRoomCacheGlobal),
+                STS());
+            Vector3 deployPos = target.bodyTransform.position + new Vector3(0, -0.3f, 0);
+            child.Deploy(deployable, deployPos, Quaternion.identity, velocity, false);
+            deployable.DeployChild();
+            SpamDeploythxboowomp(deployable);
+            rb.linearDamping = 0f;
+            rb.angularDamping = 0f;
+            rb.linearVelocity = velocity;
+            rb.solverVelocityIterations = 9998;
+            rb.detectCollisions = false;
+            rb.inertiaTensor = target.bodyTransform.up * 9998.99f;
+            rb.AddForce(velocity * 100f, ForceMode.Impulse);
+            child.ReturnToParent(2f);
+        }
+        private static DeployableObject FindBarrel()
+        {
+            GameObject barrelObj = GameObject.Find("Player Objects/Local VRRig/Local Gorilla Player/GorillaPlayerNetworkedRigAnchor/rig/body/shoulder.R/upper_arm.R/forearm.R/Right Arm Item Anchor/DropZoneAnchor/HoldableThrowableBarrelLeprechaun_Anchor(Clone)/LMAPE.");
+            if (barrelObj != null)
+                return barrelObj.GetComponent<DeployableObject>();
+            barrelObj = GameObject.Find("Player Objects/Local VRRig/Local Gorilla Player/GorillaPlayerNetworkedRigAnchor/rig/body/shoulder.L/upper_arm.L/forearm.L/Left Arm Item Anchor/DropZoneAnchor/HoldableThrowableBarrelLeprechaun_Anchor(Clone)/LMAPE.");
+            if (barrelObj != null)
+                return barrelObj.GetComponent<DeployableObject>();
+            return null;
+        }
+
+        public static void BarrelFlingGun2()
         {
             GunLib.StartPointerSystem(() =>
             {
-                FlingWithElff(GunLib.LockedPlayer);
+                SendBarrelFixIDK(GunLib.LockedPlayer, new Vector3(0, 9998.99f, 0));
             }, true);
         }
 
-        public static void FlingOnTouch()
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        public static void BuyBarrel()
         {
-            foreach (VRRig vrrig in GorillaParent.instance.vrrigs)
-            {
-                if (vrrig != GorillaTagger.Instance.offlineVRRig)
-                {
-                    if (Vector3.Distance(GorillaTagger.Instance.transform.position, vrrig.rightHandTransform.transform.position) < 0.2f || Vector3.Distance(GorillaTagger.Instance.transform.position, vrrig.leftHandTransform.transform.position) < 0.2f)
-                    {
-                        FlingWithElff(vrrig);
-                    }
-                }
-            }
+            CosmeticsController.instance.currentCart.Insert(0, CosmeticsController.instance.GetItemFromDict("LMAPE."));
         }
-        public static void FlingOnYourTouch()
+
+        public static void BarrelFlingGun()
         {
-            foreach (VRRig vrrig in GorillaParent.instance.vrrigs)
+            GunLib.StartPointerSystem(() =>
+            {
+                SendBarrel(GunLib.LockedPlayer, new Vector3(0, 9998.99f, 0));
+            }, true);
+        }
+        public static void BarrelCrashGun()
+        {
+            GunLib.StartPointerSystem(() =>
+            {
+                SendBarrel(GunLib.LockedPlayer, new Vector3(0, 500000f, 0));
+            }, true);
+        }
+        public static void BarrelKickGun()
+        {
+            GunLib.StartPointerSystem(() =>
+            {
+                VRRig target = GunLib.LockedPlayer;
+                Vector3 kickPos = new Vector3(-71.33718f, 101.4977f, -93.09029f);
+                Vector3 dir = (kickPos - target.headMesh.transform.position).normalized;
+                SendBarrel(target, dir * 9998.99f);
+            }, true);
+        }
+        public static void BarrelFlingOnYourTouch()
+        {
+            foreach (VRRig vrrig in VRRigCache.ActiveRigs)
             {
                 if (!vrrig.isMyPlayer && !vrrig.isOfflineVRRig && (Vector3.Distance(vrrig.rightHandTransform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 0.5
-                  || Vector3.Distance(vrrig.leftHandTransform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 0.5
-                  || Vector3.Distance(vrrig.transform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 0.5))
+                   || Vector3.Distance(vrrig.leftHandTransform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 0.5
+                   || Vector3.Distance(vrrig.transform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 0.5))
                 {
-                    FlingWithElff(vrrig);
+                    SendBarrel(vrrig, new Vector3(0, 9998.99f, 0));
                 }
             }
         }
+        public static void BarrelFlingAwayOnYourTouch()
+        {
+            foreach (VRRig vrrig in VRRigCache.ActiveRigs)
+            {
+                if (!vrrig.isMyPlayer && !vrrig.isOfflineVRRig && (Vector3.Distance(vrrig.rightHandTransform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 0.5
+                   || Vector3.Distance(vrrig.leftHandTransform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 0.5
+                   || Vector3.Distance(vrrig.transform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 0.5))
+                {
+                    Vector3 direction = (vrrig.transform.position - GorillaTagger.Instance.offlineVRRig.transform.position).normalized;
+                    SendBarrel(vrrig, direction * 9998.99f);
+                }
+            }
+        }
+        public static void BarrelKickOnYourTouch()
+        {
+            foreach (VRRig vrrig in VRRigCache.ActiveRigs)
+            {
+                if (!vrrig.isMyPlayer && !vrrig.isOfflineVRRig && (Vector3.Distance(vrrig.rightHandTransform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 0.5
+                   || Vector3.Distance(vrrig.leftHandTransform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 0.5
+                   || Vector3.Distance(vrrig.transform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 0.5))
+                {
+                    Vector3 kickPos = new Vector3(-71.33718f, 101.4977f, -93.09029f);
+                    Vector3 dir = (kickPos - vrrig.headMesh.transform.position).normalized;
+                    SendBarrel(vrrig, dir * 9998.99f);
+                }
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
         public static void DestroyAll()
         {
             if (PhotonNetwork.InRoom)
@@ -210,7 +312,77 @@ namespace Juul
                 PhotonNetwork.OpRemoveCompleteCacheOfPlayer(GunLib.LockedPlayer.OwningNetPlayer.ActorNumber);
             }, true);
         }
+        public static void DestroyAura()
+        {
+            if (!PhotonNetwork.InRoom || !IsModded()) return;
 
+            foreach (VRRig vrrig in VRRigCache.ActiveRigs)
+            {
+                if (vrrig != GorillaTagger.Instance.offlineVRRig &&
+                    Vector3.Distance(vrrig.transform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 3.54f)
+                {
+                    Player targetPlayer = vrrig.OwningNetPlayer?.GetPlayerRef();
+                    if (targetPlayer != null)
+                    {
+                        PhotonNetwork.OpRemoveCompleteCacheOfPlayer(targetPlayer.ActorNumber);
+                        Safety.AntiRPCKick();
+                    }
+                }
+            }
+        }
+
+        public static void DestroyOnTouch()
+        {
+            if (!PhotonNetwork.InRoom || !IsModded()) return;
+
+            foreach (VRRig vrrig in VRRigCache.ActiveRigs)
+            {
+                if (vrrig != GorillaTagger.Instance.offlineVRRig &&
+                    (Vector3.Distance(GorillaTagger.Instance.leftHandTransform.position, vrrig.transform.position) < 0.25f ||
+                     Vector3.Distance(GorillaTagger.Instance.rightHandTransform.position, vrrig.transform.position) < 0.25f))
+                {
+                    Player targetPlayer = vrrig.OwningNetPlayer?.GetPlayerRef();
+                    if (targetPlayer != null)
+                    {
+                        PhotonNetwork.OpRemoveCompleteCacheOfPlayer(targetPlayer.ActorNumber);
+                        Safety.AntiRPCKick();
+                    }
+                }
+            }
+        }
+
+        public static void DestroyOnYourTouch()
+        {
+            if (!PhotonNetwork.InRoom || !IsModded()) return;
+
+            foreach (VRRig vrrig in VRRigCache.ActiveRigs)
+            {
+                if (!vrrig.isMyPlayer && !vrrig.isOfflineVRRig &&
+                    (Vector3.Distance(vrrig.rightHandTransform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 0.5 ||
+                     Vector3.Distance(vrrig.leftHandTransform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 0.5 ||
+                     Vector3.Distance(vrrig.transform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 0.5))
+                {
+                    Player targetPlayer = vrrig.OwningNetPlayer?.GetPlayerRef();
+                    if (targetPlayer != null)
+                    {
+                        PhotonNetwork.OpRemoveCompleteCacheOfPlayer(targetPlayer.ActorNumber);
+                        Safety.AntiRPCKick();
+                    }
+                }
+            }
+        }
+        public static bool IsModded()
+        {
+            string gameMode = PhotonNetwork.CurrentRoom.CustomProperties["gameMode"] as string;
+            if (gameMode.Contains("MODDED"))
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
         public static void BreakAudioAll()
         {
             if (ControllerInputPoller.instance.rightControllerIndexFloat > 0.1f || Mouse.current.rightButton.isPressed)
@@ -368,7 +540,7 @@ namespace Juul
         }
         public static void StutterAll()
         {
-            foreach (VRRig p in GorillaParent.instance.vrrigs.Where(r => r != VRRig.LocalRig))
+            foreach (VRRig p in VRRigCache.ActiveRigs.Where(r => r != VRRig.LocalRig))
             {
                 StutterPlayer(p);
             }
@@ -382,14 +554,14 @@ namespace Juul
         }
         public static void LagAll()
         {
-            foreach (VRRig p in GorillaParent.instance.vrrigs.Where(r => r != VRRig.LocalRig))
+            foreach (VRRig p in VRRigCache.ActiveRigs.Where(r => r != VRRig.LocalRig))
             {
                 LagPlayer(p);
             }
         }
         public static void LagOnYourTouch()
         {
-            foreach (VRRig vrrig in GorillaParent.instance.vrrigs)
+            foreach (VRRig vrrig in VRRigCache.ActiveRigs)
             {
                 if (!vrrig.isMyPlayer && !vrrig.isOfflineVRRig && (Vector3.Distance(vrrig.rightHandTransform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 0.5
                    || Vector3.Distance(vrrig.leftHandTransform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 0.5
@@ -401,7 +573,7 @@ namespace Juul
         }
         public static void CrashOnYourTouch()
         {
-            foreach (VRRig vrrig in GorillaParent.instance.vrrigs)
+            foreach (VRRig vrrig in VRRigCache.ActiveRigs)
             {
                 if (!vrrig.isMyPlayer && !vrrig.isOfflineVRRig && ((double)Vector3.Distance(vrrig.rightHandTransform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 0.5
                    || (double)Vector3.Distance(vrrig.leftHandTransform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 0.5
@@ -413,7 +585,7 @@ namespace Juul
         }
         public static void StutterOnYourTouch()
         {
-            foreach (VRRig vrrig in GorillaParent.instance.vrrigs)
+            foreach (VRRig vrrig in VRRigCache.ActiveRigs)
             {
                 if (!vrrig.isMyPlayer && !vrrig.isOfflineVRRig && ((double)Vector3.Distance(vrrig.rightHandTransform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 0.5
                    || (double)Vector3.Distance(vrrig.leftHandTransform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 0.5
@@ -425,7 +597,7 @@ namespace Juul
         }
         public static void LagOnTouch()
         {
-            foreach (VRRig vrrig in GorillaParent.instance.vrrigs)
+            foreach (VRRig vrrig in VRRigCache.ActiveRigs)
             {
                 if (vrrig != GorillaTagger.Instance.offlineVRRig && (Vector3.Distance(GorillaTagger.Instance.leftHandTransform.position, vrrig.headMesh.transform.position) < 0.25f || Vector3.Distance(GorillaTagger.Instance.rightHandTransform.position, vrrig.headMesh.transform.position) < 0.25f || Vector3.Distance(GorillaTagger.Instance.leftHandTransform.position, vrrig.bodyTransform.transform.position) < 0.25f || Vector3.Distance(GorillaTagger.Instance.rightHandTransform.position, vrrig.bodyTransform.transform.position) < 0.25f))
                 {
@@ -435,7 +607,7 @@ namespace Juul
         }
         public static void StutterOnTouch()
         {
-            foreach (VRRig vrrig in GorillaParent.instance.vrrigs)
+            foreach (VRRig vrrig in VRRigCache.ActiveRigs)
             {
                 if (vrrig != GorillaTagger.Instance.offlineVRRig && (Vector3.Distance(GorillaTagger.Instance.leftHandTransform.position, vrrig.headMesh.transform.position) < 0.25f || Vector3.Distance(GorillaTagger.Instance.rightHandTransform.position, vrrig.headMesh.transform.position) < 0.25f || Vector3.Distance(GorillaTagger.Instance.leftHandTransform.position, vrrig.bodyTransform.transform.position) < 0.25f || Vector3.Distance(GorillaTagger.Instance.rightHandTransform.position, vrrig.bodyTransform.transform.position) < 0.25f))
                 {
@@ -445,7 +617,7 @@ namespace Juul
         }
         public static void CrashOnTouch()
         {
-            foreach (VRRig vrrig in GorillaParent.instance.vrrigs)
+            foreach (VRRig vrrig in VRRigCache.ActiveRigs)
             {
                 if (vrrig != GorillaTagger.Instance.offlineVRRig && (Vector3.Distance(GorillaTagger.Instance.leftHandTransform.position, vrrig.headMesh.transform.position) < 0.25f || Vector3.Distance(GorillaTagger.Instance.rightHandTransform.position, vrrig.headMesh.transform.position) < 0.25f || Vector3.Distance(GorillaTagger.Instance.leftHandTransform.position, vrrig.bodyTransform.transform.position) < 0.25f || Vector3.Distance(GorillaTagger.Instance.rightHandTransform.position, vrrig.bodyTransform.transform.position) < 0.25f))
                 {
@@ -456,7 +628,7 @@ namespace Juul
         public static void LagAura()
         {
             List<VRRig> vrriglist = new List<VRRig>();
-            foreach (VRRig vrrig in GorillaParent.instance.vrrigs)
+            foreach (VRRig vrrig in VRRigCache.ActiveRigs)
             {
                 if ((Vector3.Distance(vrrig.transform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 3.54f && vrrig != GorillaTagger.Instance.offlineVRRig))
                 {
@@ -471,7 +643,7 @@ namespace Juul
         public static void CrashAura()
         {
             List<VRRig> vrriglist = new List<VRRig>();
-            foreach (VRRig vrrig in GorillaParent.instance.vrrigs)
+            foreach (VRRig vrrig in VRRigCache.ActiveRigs)
             {
                 if ((Vector3.Distance(vrrig.transform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 3.54f && vrrig != GorillaTagger.Instance.offlineVRRig))
                 {
@@ -486,7 +658,7 @@ namespace Juul
         public static void StutterAura()
         {
             List<VRRig> vrriglist = new List<VRRig>();
-            foreach (VRRig vrrig in GorillaParent.instance.vrrigs)
+            foreach (VRRig vrrig in VRRigCache.ActiveRigs)
             {
                 if ((Vector3.Distance(vrrig.transform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 3.54f && vrrig != GorillaTagger.Instance.offlineVRRig))
                 {
@@ -507,12 +679,79 @@ namespace Juul
         }
         public static void CrashAll()
         {
-            foreach (VRRig p in GorillaParent.instance.vrrigs.Where(r => r != VRRig.LocalRig))
+            foreach (VRRig p in VRRigCache.ActiveRigs.Where(r => r != VRRig.LocalRig))
             {
                 CrashPlayer(p);
             }
         }
-        
+        public static void StrongLagGun()
+        {
+            GunLib.StartPointerSystem(() =>
+            {
+                StrongLagPlayer(GunLib.LockedPlayer);
+            }, true);
+        }
+        public static void StrongLagAll()
+        {
+            foreach (VRRig p in VRRigCache.ActiveRigs.Where(r => r != VRRig.LocalRig))
+            {
+                StrongLagPlayer(p);
+            }
+        }
+        public static void StrongLagAura()
+        {
+            List<VRRig> vrriglist = new List<VRRig>();
+            foreach (VRRig vrrig in VRRigCache.ActiveRigs)
+            {
+                if ((Vector3.Distance(vrrig.transform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 3.54f && vrrig != GorillaTagger.Instance.offlineVRRig))
+                {
+                    vrriglist.Add(vrrig);
+                }
+                foreach (VRRig rigs in vrriglist)
+                {
+                    StrongLagPlayer(rigs);
+                }
+            }
+        }
+        public static void StrongLagTouch()
+        {
+            foreach (VRRig vrrig in VRRigCache.ActiveRigs)
+            {
+                if (vrrig != GorillaTagger.Instance.offlineVRRig && (Vector3.Distance(GorillaTagger.Instance.leftHandTransform.position, vrrig.headMesh.transform.position) < 0.25f || Vector3.Distance(GorillaTagger.Instance.rightHandTransform.position, vrrig.headMesh.transform.position) < 0.25f || Vector3.Distance(GorillaTagger.Instance.leftHandTransform.position, vrrig.bodyTransform.transform.position) < 0.25f || Vector3.Distance(GorillaTagger.Instance.rightHandTransform.position, vrrig.bodyTransform.transform.position) < 0.25f))
+                {
+                    StrongLagPlayer(vrrig);
+                }
+            }
+        }
+        public static void StrongLagOnYourTouch()
+        {
+            foreach (VRRig vrrig in VRRigCache.ActiveRigs)
+            {
+                if (!vrrig.isMyPlayer && !vrrig.isOfflineVRRig && ((double)Vector3.Distance(vrrig.rightHandTransform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 0.5
+                   || (double)Vector3.Distance(vrrig.leftHandTransform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 0.5
+                   || (double)Vector3.Distance(vrrig.transform.position, GorillaTagger.Instance.offlineVRRig.transform.position) <= 0.5))
+                {
+                    StrongLagPlayer(vrrig);
+                }
+            }
+        }
+        public static void LagTest67()
+        {
+            foreach (VRRig p in VRRigCache.ActiveRigs.Where(r => r != VRRig.LocalRig))
+            {
+                LagPlayerTest(p);
+            }
+        }
+        public static void LagPlayerTest(VRRig player)
+        {
+            if (Time.time <= delay) return;
+            for (int i = 0; i < 3796; i++) PhotonNetwork.NetworkingClient.LoadBalancingPeer.OpRaiseEvent(210, new ExitGames.Client.Photon.Hashtable(), new RaiseEventOptions { TargetActors = new int[] { player.Creator.ActorNumber } }, SendOptions.SendUnreliable);
+            PhotonNetwork.NetworkingClient.LoadBalancingPeer.SendOutgoingCommands();
+            Safety.AntiRPCKick();
+            delay = Time.time + 8.5f;
+        }
+
+
         public static void CrashPlayer(VRRig player) // not actual
         {
             if (Time.time <= delay) return;
@@ -529,6 +768,15 @@ namespace Juul
             PhotonNetwork.NetworkingClient.LoadBalancingPeer.SendOutgoingCommands();
             Safety.AntiRPCKick();
             delay = Time.time + 1.3f;
+        }
+        public static void StrongLagPlayer(VRRig player)
+        {
+            if (Time.time <= delay) return;
+            for (int i = 0; i < 3796; i++) PhotonNetwork.NetworkingClient.LoadBalancingPeer.OpRaiseEvent(3, new ExitGames.Client.Photon.Hashtable(), new RaiseEventOptions { TargetActors = new int[] { player.Creator.ActorNumber } }, SendOptions.SendUnreliable);
+            PhotonNetwork.NetworkingClient.LoadBalancingPeer.SendOutgoingCommands();
+            for (int ii = 0; ii < 10; ii++)
+                Safety.AntiRPCKick();
+            delay = Time.time + 8.5f;
         }
         public static void StutterPlayer(VRRig player)
         {
@@ -548,5 +796,65 @@ namespace Juul
             hashtable.Clear();
             PhotonNetwork.LocalPlayer.SetCustomProperties(hashtable, null, null);
         }
+        public static void EnableSpyRoom()
+        {
+            if (!PhotonNetwork.IsConnected) return;
+            PhotonNetwork.NetworkingClient.LoadBalancingPeer.TransportProtocol = ConnectionProtocol.Tcp;
+            PhotonNetwork.NetworkingClient.LoadBalancingPeer.peerBase = new TPeer()
+            {
+                DoFraming = true,
+                photonPeer = PhotonNetwork.NetworkingClient.LoadBalancingPeer,
+                usedTransportProtocol = ConnectionProtocol.Tcp
+            };
+        }
+        public static void DisableSpyRoom()
+        {
+            if (!PhotonNetwork.IsConnected) return;
+            PhotonNetwork.NetworkingClient.LoadBalancingPeer.TransportProtocol = ConnectionProtocol.Udp;
+            PhotonNetwork.NetworkingClient.LoadBalancingPeer.peerBase = new EnetPeer
+            {
+                photonPeer = PhotonNetwork.NetworkingClient.LoadBalancingPeer,
+                usedTransportProtocol = ConnectionProtocol.Udp
+            };
+            if (PhotonNetwork.InRoom)
+            {
+                string currentRoom = PhotonNetwork.CurrentRoom.Name;
+                PhotonNetwork.LeaveRoom();
+                PhotonNetwork.RejoinRoom(currentRoom);
+            }
+        }
+        public static void UnlockRoom()
+        {
+            if (!PhotonNetwork.InRoom || !PhotonNetwork.IsMasterClient) return;
+            PhotonNetwork.CurrentRoom.IsVisible = true;
+            PhotonNetwork.CurrentRoom.IsOpen = true;
+            GorillaScoreboardTotalUpdater.instance.UpdateActiveScoreboards();
+        }
+
+        public static void LockRoom()
+        {
+            if (!PhotonNetwork.InRoom || !PhotonNetwork.IsMasterClient) return;
+            PhotonNetwork.CurrentRoom.IsVisible = false;
+            PhotonNetwork.CurrentRoom.IsOpen = false;
+            GorillaScoreboardTotalUpdater.instance.UpdateActiveScoreboards();
+        }
+        public static void SpazRoom()
+        {
+            if (!PhotonNetwork.InRoom || !PhotonNetwork.IsMasterClient) return;
+            for (int i = 0; i < 100; i++)
+            {
+                PhotonNetwork.CurrentRoom.IsVisible = (i % 2 == 0);
+                PhotonNetwork.CurrentRoom.IsOpen = (i % 2 == 0);
+            }
+            GorillaScoreboardTotalUpdater.instance.UpdateActiveScoreboards();
+            Safety.AntiRPCKick();
+        }
+
+
+
+
+
+
+
     }
 }

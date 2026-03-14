@@ -76,13 +76,13 @@ namespace Juul
         }
         public static void BoneESP()
         {
-            if (GorillaParent.instance == null || GorillaParent.instance.vrrigs == null)
+            if (GorillaParent.instance == null || VRRigCache.ActiveRigs == null)
                 return;
 
             if (GorillaTagger.Instance == null)
                 return;
 
-            VRRig[] currentRigs = GorillaParent.instance.vrrigs.ToArray();
+            VRRig[] currentRigs = VRRigCache.ActiveRigs.ToArray();
             HashSet<VRRig> activeRigs = new HashSet<VRRig>();
 
             foreach (VRRig rig in currentRigs)
@@ -234,7 +234,7 @@ namespace Juul
 
         public static void Tracers()
         {
-            if (GorillaParent.instance == null || GorillaParent.instance.vrrigs == null)
+            if (GorillaParent.instance == null || VRRigCache.ActiveRigs == null)
                 return;
 
             if (GorillaTagger.Instance == null || GorillaTagger.Instance.offlineVRRig == null)
@@ -246,7 +246,7 @@ namespace Juul
                 return;
 
             Vector3 handPosition = localRig.rightHandTransform.position;
-            VRRig[] currentRigs = GorillaParent.instance.vrrigs.ToArray();
+            VRRig[] currentRigs = VRRigCache.ActiveRigs.ToArray();
             HashSet<VRRig> activeRigs = new HashSet<VRRig>();
 
             foreach (VRRig rig in currentRigs)
@@ -330,7 +330,7 @@ namespace Juul
 
         public static void Box2DESP()
         {
-            if (GorillaParent.instance == null || GorillaParent.instance.vrrigs == null)
+            if (GorillaParent.instance == null || VRRigCache.ActiveRigs == null)
                 return;
 
             if (GorillaTagger.Instance == null || GorillaTagger.Instance.offlineVRRig == null)
@@ -344,7 +344,7 @@ namespace Juul
             if (mainCamera == null)
                 return;
 
-            VRRig[] currentRigs = GorillaParent.instance.vrrigs.ToArray();
+            VRRig[] currentRigs = VRRigCache.ActiveRigs.ToArray();
             HashSet<VRRig> activeRigs = new HashSet<VRRig>();
 
             foreach (VRRig rig in currentRigs)
@@ -471,13 +471,13 @@ namespace Juul
 
         public static void Box3DESP()
         {
-            if (GorillaParent.instance == null || GorillaParent.instance.vrrigs == null)
+            if (GorillaParent.instance == null || VRRigCache.ActiveRigs == null)
                 return;
 
             if (GorillaTagger.Instance == null)
                 return;
 
-            VRRig[] currentRigs = GorillaParent.instance.vrrigs.ToArray();
+            VRRig[] currentRigs = VRRigCache.ActiveRigs.ToArray();
             HashSet<VRRig> activeRigs = new HashSet<VRRig>();
 
             foreach (VRRig rig in currentRigs)
@@ -634,13 +634,13 @@ namespace Juul
 
         public static void Chams()
         {
-            if (GorillaParent.instance == null || GorillaParent.instance.vrrigs == null)
+            if (GorillaParent.instance == null || VRRigCache.ActiveRigs == null)
                 return;
 
             if (GorillaTagger.Instance == null)
                 return;
 
-            VRRig[] currentRigs = GorillaParent.instance.vrrigs.ToArray();
+            VRRig[] currentRigs = VRRigCache.ActiveRigs.ToArray();
 
             foreach (VRRig rig in currentRigs)
             {
@@ -683,13 +683,13 @@ namespace Juul
 
         public static void PlayerNameESP()
         {
-            if (GorillaParent.instance == null || GorillaParent.instance.vrrigs == null)
+            if (GorillaParent.instance == null || VRRigCache.ActiveRigs == null)
                 return;
 
             if (GorillaTagger.Instance == null)
                 return;
 
-            VRRig[] currentRigs = GorillaParent.instance.vrrigs.ToArray();
+            VRRig[] currentRigs = VRRigCache.ActiveRigs.ToArray();
             HashSet<VRRig> activeRigs = new HashSet<VRRig>();
 
             foreach (VRRig rig in currentRigs)
@@ -953,7 +953,7 @@ namespace Juul
         public static void OutcastAll()
         {
             Color c = Color.HSVToRGB(Time.time % 1, 1, 1);
-            GorillaParent.instance.vrrigs.ForEach(v => { if (v && v != VRRig.LocalRig) v.mainSkin.material.color = c; });
+            VRRigCache.ActiveRigs.ForEach(v => { if (v && v != VRRig.LocalRig) v.mainSkin.material.color = c; });
         }
 
         public static void PlayerInfo2()
@@ -1004,5 +1004,318 @@ namespace Juul
                 GameObject.Destroy(line.gameObject, 0.5f);
             }
         }
+        public static void InfectionTracers()
+        {
+            if (GorillaParent.instance == null || VRRigCache.ActiveRigs == null)
+                return;
+
+            if (GorillaTagger.Instance == null || GorillaTagger.Instance.offlineVRRig == null)
+                return;
+
+            VRRig localRig = GorillaTagger.Instance.offlineVRRig;
+
+            if (localRig.rightHandTransform == null)
+                return;
+
+            Vector3 handPosition = localRig.rightHandTransform.position;
+            VRRig[] currentRigs = VRRigCache.ActiveRigs.ToArray();
+            HashSet<VRRig> activeRigs = new HashSet<VRRig>();
+
+            foreach (VRRig rig in currentRigs)
+            {
+                if (rig == null || rig == localRig)
+                    continue;
+
+                if (rig.head == null || rig.head.rigTarget == null)
+                    continue;
+
+                activeRigs.Add(rig);
+                Vector3 headPosition = rig.head.rigTarget.position;
+
+                Color tracerColor = Infected(rig) ? Color.red : Core.BaseColor;
+
+                if (!tracerLineCache.ContainsKey(rig))
+                {
+                    try
+                    {
+                        LineLib.Line tracerLine = LineLib.CreateLine(handPosition, headPosition, tracerWidth, tracerColor);
+                        tracerLineCache[rig] = tracerLine;
+                    }
+                    catch (System.Exception e)
+                    {
+                        Debug.LogError($"Failed to create tracer line: {e.Message}");
+                    }
+                }
+                else
+                {
+                    try
+                    {
+                        LineLib.Line tracerLine = tracerLineCache[rig];
+                        if (tracerLine != null)
+                        {
+                            tracerLine.UpdatePosition(handPosition, headPosition);
+                            tracerLine.UpdateColor(tracerColor);
+                            tracerLine.SetActive(true);
+                        }
+                    }
+                    catch (System.Exception e)
+                    {
+                        Debug.LogError($"Failed to update tracer line: {e.Message}");
+                    }
+                }
+            }
+
+            CleanupDisconnectedInfectionTracers(activeRigs);
+        }
+
+        private static void CleanupDisconnectedInfectionTracers(HashSet<VRRig> activeRigs)
+        {
+            List<VRRig> rigsToRemove = new List<VRRig>();
+
+            foreach (var kvp in tracerLineCache)
+            {
+                if (!activeRigs.Contains(kvp.Key) || kvp.Key == null)
+                {
+                    if (kvp.Value != null)
+                    {
+                        LineLib.DeleteLine(kvp.Value);
+                    }
+                    rigsToRemove.Add(kvp.Key);
+                }
+            }
+
+            foreach (VRRig rig in rigsToRemove)
+            {
+                tracerLineCache.Remove(rig);
+            }
+        }
+
+        public static void CleanupInfectionTracers()
+        {
+            foreach (var kvp in tracerLineCache)
+            {
+                if (kvp.Value != null)
+                {
+                    LineLib.DeleteLine(kvp.Value);
+                }
+            }
+            tracerLineCache.Clear();
+        }
+
+        public static void InfectionChams()
+        {
+            if (GorillaParent.instance == null || VRRigCache.ActiveRigs == null)
+                return;
+
+            if (GorillaTagger.Instance == null)
+                return;
+
+            VRRig[] currentRigs = VRRigCache.ActiveRigs.ToArray();
+
+            foreach (VRRig rig in currentRigs)
+            {
+                if (rig == null || rig == GorillaTagger.Instance.offlineVRRig)
+                    continue;
+
+                if (rig.mainSkin == null)
+                    continue;
+
+                if (!originalMaterials.ContainsKey(rig))
+                {
+                    originalMaterials[rig] = rig.mainSkin.material;
+                    originalColors[rig] = rig.mainSkin.material.color;
+                }
+
+                Shader chamShader = Shader.Find("GUI/Text Shader");
+                if (chamShader != null)
+                {
+                    rig.mainSkin.material.shader = chamShader;
+                    rig.mainSkin.material.color = Infected(rig) ? Color.red : Core.BaseColor;
+                }
+            }
+        }
+
+        public static void CleanupInfectionChams()
+        {
+            foreach (var kvp in originalMaterials)
+            {
+                VRRig rig = kvp.Key;
+                if (rig != null && rig.mainSkin != null)
+                {
+                    Renderer rigRenderer = rig.mainSkin.GetComponent<Renderer>();
+                    rigRenderer.material.shader = Shader.Find("GorillaTag/UberShader");
+                    rigRenderer.material.color = rig.playerColor;
+                }
+            }
+            originalMaterials.Clear();
+            originalColors.Clear();
+        }
+        public static void InfectionBoneESP()
+        {
+            if (GorillaParent.instance == null || VRRigCache.ActiveRigs == null)
+                return;
+
+            if (GorillaTagger.Instance == null)
+                return;
+
+            VRRig[] currentRigs = VRRigCache.ActiveRigs.ToArray();
+            HashSet<VRRig> activeRigs = new HashSet<VRRig>();
+
+            foreach (VRRig rig in currentRigs)
+            {
+                if (rig == null || rig == GorillaTagger.Instance.offlineVRRig)
+                    continue;
+
+                if (rig.head == null || rig.head.rigTarget == null)
+                    continue;
+
+                if (rig.mainSkin == null || rig.mainSkin.bones == null || rig.mainSkin.bones.Length == 0)
+                    continue;
+
+                activeRigs.Add(rig);
+
+                if (!rigLineCache.ContainsKey(rig))
+                {
+                    CreateInfectionLinesForRig(rig);
+                }
+                else
+                {
+                    UpdateInfectionLinesForRig(rig);
+                }
+            }
+
+            CleanupDisconnectedInfectionBones(activeRigs);
+        }
+
+        private static void CreateInfectionLinesForRig(VRRig rig)
+        {
+            int numBoneConnections = bones.Length / 2;
+            LineLib.Line[] lines = new LineLib.Line[numBoneConnections];
+
+            Color boneColor = Infected(rig) ? Color.red : Core.BaseColor;
+
+            for (int i = 0; i < bones.Length; i += 2)
+            {
+                try
+                {
+                    int boneIndexA = bones[i];
+                    int boneIndexB = bones[i + 1];
+
+                    if (boneIndexA >= rig.mainSkin.bones.Length || boneIndexB >= rig.mainSkin.bones.Length)
+                        continue;
+
+                    Transform boneA = rig.mainSkin.bones[boneIndexA];
+                    Transform boneB = rig.mainSkin.bones[boneIndexB];
+
+                    if (boneA != null && boneB != null)
+                    {
+                        LineLib.Line boneLine = LineLib.CreateLine(boneA.position, boneB.position, width, boneColor);
+                        lines[i / 2] = boneLine;
+                    }
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError($"Failed to create bone line at index {i}: {e.Message}");
+                }
+            }
+
+            rigLineCache[rig] = lines;
+        }
+
+        private static void UpdateInfectionLinesForRig(VRRig rig)
+        {
+            if (!rigLineCache.ContainsKey(rig))
+                return;
+
+            LineLib.Line[] lines = rigLineCache[rig];
+
+            if (lines == null || lines.Length == 0)
+                return;
+
+            Color boneColor = Infected(rig) ? Color.red : Core.BaseColor;
+
+            for (int i = 0; i < bones.Length; i += 2)
+            {
+                try
+                {
+                    int boneIndexA = bones[i];
+                    int boneIndexB = bones[i + 1];
+                    int lineIndex = i / 2;
+
+                    if (boneIndexA >= rig.mainSkin.bones.Length || boneIndexB >= rig.mainSkin.bones.Length)
+                        continue;
+
+                    if (lineIndex >= lines.Length || lines[lineIndex] == null)
+                        continue;
+
+                    Transform boneA = rig.mainSkin.bones[boneIndexA];
+                    Transform boneB = rig.mainSkin.bones[boneIndexB];
+
+                    if (boneA != null && boneB != null)
+                    {
+                        lines[lineIndex].UpdatePosition(boneA.position, boneB.position);
+                        lines[lineIndex].UpdateColor(boneColor);
+                        lines[lineIndex].SetActive(true);
+                    }
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError($"Failed to update bone line at index {i}: {e.Message}");
+                }
+            }
+        }
+
+        private static void CleanupDisconnectedInfectionBones(HashSet<VRRig> activeRigs)
+        {
+            List<VRRig> rigsToRemove = new List<VRRig>();
+
+            foreach (var kvp in rigLineCache)
+            {
+                if (!activeRigs.Contains(kvp.Key) || kvp.Key == null)
+                {
+                    if (kvp.Value != null)
+                    {
+                        foreach (LineLib.Line line in kvp.Value)
+                        {
+                            if (line != null)
+                            {
+                                LineLib.DeleteLine(line);
+                            }
+                        }
+                    }
+                    rigsToRemove.Add(kvp.Key);
+                }
+            }
+
+            foreach (VRRig rig in rigsToRemove)
+            {
+                rigLineCache.Remove(rig);
+            }
+        }
+
+        public static void CleanupInfectionBoneESP()
+        {
+            foreach (var kvp in rigLineCache)
+            {
+                if (kvp.Value != null)
+                {
+                    foreach (LineLib.Line line in kvp.Value)
+                    {
+                        if (line != null)
+                        {
+                            LineLib.DeleteLine(line);
+                        }
+                    }
+                }
+            }
+            rigLineCache.Clear();
+        }
+     
+
+
+
+
+
+
     }
 }

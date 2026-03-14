@@ -37,46 +37,59 @@ namespace Juul
             try
             {
                 AntiRPCKicker();
-
                 Type gorillaNotType = typeof(MonkeAgent);
                 MonkeAgent gorillaInstance = MonkeAgent.instance;
-
                 if (gorillaInstance == null)
-                {
-                    Debug.LogWarning("MonkeAgent.instance is null — cannot clear RPCs.");
                     return;
-                }
-
                 MonkeAgent.instance.rpcErrorMax = int.MaxValue;
                 MonkeAgent.instance.rpcCallLimit = int.MaxValue;
                 MonkeAgent.instance.logErrorMax = int.MaxValue;
                 PhotonNetwork.MaxResendsBeforeDisconnect = int.MaxValue;
                 PhotonNetwork.QuickResends = int.MaxValue;
-
+                var peer = PhotonNetwork.NetworkingClient?.LoadBalancingPeer;
+                if (peer != null)
+                {
+                    peer.SentCountAllowance = int.MaxValue;
+                    peer.QuickResendAttempts = 3;
+                    peer.CrcEnabled = false;
+                    peer.UseByteArraySlicePoolForEvents = false;
+                    peer.TrafficStatsEnabled = false;
+                    peer.TrafficStatsReset();
+                    peer.SendOutgoingCommands();
+                    try
+                    {
+                        var type = peer.GetType();
+                        var queueField = type.GetField("outgoingStreamQueue", BindingFlags.NonPublic | BindingFlags.Instance);
+                        var queue = queueField?.GetValue(peer) as System.Collections.IList;
+                        queue?.Clear();
+                        var commandsField = type.GetField("commandList", BindingFlags.NonPublic | BindingFlags.Instance);
+                        var commands = commandsField?.GetValue(peer) as System.Collections.IList;
+                        commands?.Clear();
+                        var resentField = type.GetField("resentCommandsCount", BindingFlags.NonPublic | BindingFlags.Instance);
+                        resentField?.SetValue(peer, 0);
+                    }
+                    catch { }
+                }
+                PhotonNetwork.NetworkStatisticsEnabled = false;
                 ValueTuple<Type, object, string, bool>[] targets = new ValueTuple<Type, object, string, bool>[]
                 {
                     (gorillaNotType, gorillaInstance, "rpcErrorMax", false),
                     (gorillaNotType, gorillaInstance, "rpcCallLimit", false),
                     (gorillaNotType, gorillaInstance, "logErrorMax", false),
+                    (gorillaNotType, gorillaInstance, "userRPCCalls", false),
+                    (gorillaNotType, gorillaInstance, "_sendReport", false),
                     (typeof(PhotonNetwork), null, "QuickResends", true),
                     (typeof(PhotonNetwork), null, "MaxResendsBeforeDisconnect", true)
                 };
-
-                foreach (ValueTuple<Type, object, string, bool> entry in targets)
+                foreach (var entry in targets)
+                    TrySetMember(entry.Item1, entry.Item2, entry.Item3, GetDefaultValue(entry.Item3), entry.Item4);
+                try
                 {
-                    if (!TrySetIntMember(entry.Item1, entry.Item2, entry.Item3, int.MaxValue, entry.Item4))
-                    {
-                        Debug.LogWarning(string.Concat(new string[]
-                        {
-                            "Could not set '",
-                            entry.Item3,
-                            "' on ",
-                            entry.Item1.FullName,
-                            "."
-                        }));
-                    }
+                    var userRPCCallsField = gorillaNotType.GetField("userRPCCalls", BindingFlags.NonPublic | BindingFlags.Instance);
+                    var userRPCCalls = userRPCCallsField?.GetValue(gorillaInstance) as System.Collections.IDictionary;
+                    userRPCCalls?.Clear();
                 }
-
+                catch { }
                 PhotonNetwork.NetworkingClient.OpRaiseEvent(200, new Hashtable()
                 {
                     { 0, GorillaTagger.Instance.myVRRig.ViewID }
@@ -85,7 +98,6 @@ namespace Juul
                     CachingOption = (EventCaching)6,
                     TargetActors = new int[] { PhotonNetwork.LocalPlayer.ActorNumber }
                 }, SendOptions.SendReliable);
-
                 if (Time.time > rpcDel)
                 {
                     try
@@ -97,21 +109,21 @@ namespace Juul
                         PhotonNetwork.OpCleanRpcBuffer(GorillaTagger.Instance.myVRRig.GetView);
                         MonkeAgent.instance.OnPlayerLeftRoom(PhotonNetwork.LocalPlayer);
                         PhotonNetwork.NetworkingClient.LoadBalancingPeer.SendOutgoingCommands();
-
                         Traverse yeah = Traverse.Create(typeof(PhotonNetwork));
                         yeah.Property("ResentReliableCommands").SetValue(0);
-
                         PhotonNetwork.NetworkingClient.Service();
                         PhotonNetwork.NetworkingClient.OpChangeGroups(null, new byte[] { 1, 2, 3, 4 });
                         PhotonNetwork.NetworkingClient.LoadBalancingPeer.TrafficStatsReset();
-
                         try
                         {
-                            var system = AppDomain.CurrentDomain.GetAssemblies().First(a => a.GetName().Name == "Assembly-CSharp").GetType("RoomSystem");
-                            system.GetMethod("OnPlayerLeftRoom", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(null, new object[] { NetworkSystem.Instance.LocalPlayer });
+                            var system = AppDomain.CurrentDomain.GetAssemblies()
+                                .First(a => a.GetName().Name == "Assembly-CSharp")
+                                .GetType("RoomSystem");
+
+                            system.GetMethod("OnPlayerLeftRoom", BindingFlags.NonPublic | BindingFlags.Instance)
+                                .Invoke(null, new object[] { NetworkSystem.Instance.LocalPlayer });
                         }
                         catch { }
-
                         try
                         {
                             NetSystemState state = new NetSystemState();
@@ -121,38 +133,50 @@ namespace Juul
                             RunViewUpdate();
                         }
                         catch { }
-
                         PhotonNetwork.SendAllOutgoingCommands();
+                        try
+                        {
+                            var photonViewList = typeof(PhotonNetwork).GetField("photonViewList",
+                                BindingFlags.NonPublic | BindingFlags.Static);
+                            var viewDict = photonViewList?.GetValue(null) as System.Collections.IDictionary;
+                            if (viewDict != null)
+                            {
+                                var keysToRemove = new System.Collections.ArrayList();
+                                foreach (System.Collections.DictionaryEntry entry in viewDict)
+                                {
+                                    var view = entry.Value as PhotonView;
+                                    if (view != null && view.IsMine && view.isRuntimeInstantiated)
+                                        keysToRemove.Add(entry.Key);
+                                }
+                                foreach (var key in keysToRemove)
+                                    viewDict.Remove(key);
+                            }
+                        }
+                        catch { }
                     }
                     catch { }
                 }
-
                 MethodInfo refresh = gorillaNotType.GetMethod("RefreshRPCs", BindingFlags.NonPublic | BindingFlags.Instance);
-                if (refresh != null)
-                {
-                    refresh.Invoke(gorillaInstance, null);
-                }
+                refresh?.Invoke(gorillaInstance, null);
             }
             catch { }
         }
+        private static byte[] cachedSerializedRpc;
 
         private static void AntiRPCKicker()
         {
             for (int i = 0; i < 1300; i++)
-            {
                 ResendCachedRpc();
-            }
-
             try
             {
-                if (PhotonNetwork.NetworkingClient.LoadBalancingPeer.GetType().GetField("outgoingStreamQueue", BindingFlags.Instance | BindingFlags.NonPublic) != null)
+                var peer = PhotonNetwork.NetworkingClient.LoadBalancingPeer;
+                var field = peer.GetType().GetField("outgoingStreamQueue", BindingFlags.Instance | BindingFlags.NonPublic);
+
+                if (field != null)
                 {
-                    IList list = PhotonNetwork.NetworkingClient.LoadBalancingPeer.GetType().GetField("outgoingStreamQueue", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(PhotonNetwork.NetworkingClient.LoadBalancingPeer) as IList;
-                    if (PhotonNetwork.NetworkingClient.LoadBalancingPeer.GetType().GetField("outgoingStreamQueue", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(PhotonNetwork.NetworkingClient.LoadBalancingPeer) as IList != null && list.Count > 0)
-                    {
-                        Debug.Log(list[list.Count - 1]);
+                    IList list = field.GetValue(peer) as IList;
+                    if (list != null && list.Count > 0)
                         cachedSerializedRpc = list[list.Count - 1] as byte[];
-                    }
                 }
             }
             catch
@@ -163,58 +187,61 @@ namespace Juul
 
         private static void ResendCachedRpc()
         {
-            if (cachedSerializedRpc != null)
+            if (cachedSerializedRpc == null)
+                return;
+            try
             {
-                try
-                {
-                    if (PhotonNetwork.NetworkingClient.LoadBalancingPeer.GetType().GetMethod("SendReliable", BindingFlags.Instance | BindingFlags.NonPublic) != null)
-                    {
-                        PhotonNetwork.NetworkingClient.LoadBalancingPeer.GetType().GetMethod("SendReliable", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(PhotonNetwork.NetworkingClient.LoadBalancingPeer, new object[] { cachedSerializedRpc });
-                    }
-                    else if (PhotonNetwork.NetworkingClient.LoadBalancingPeer.GetType().GetMethod("SendUnreliable", BindingFlags.Instance | BindingFlags.NonPublic) != null)
-                    {
-                        PhotonNetwork.NetworkingClient.LoadBalancingPeer.GetType().GetMethod("SendUnreliable", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(PhotonNetwork.NetworkingClient.LoadBalancingPeer, new object[] { cachedSerializedRpc });
-                    }
-                }
-                catch
-                {
-                    Console.WriteLine("if u managed to get here then u broke the code or u retard");
-                    SetTick(9999f);
-                }
+                var peer = PhotonNetwork.NetworkingClient.LoadBalancingPeer;
+                var type = peer.GetType();
+                var method = type.GetMethod("SendReliable", BindingFlags.Instance | BindingFlags.NonPublic)
+                            ?? type.GetMethod("SendUnreliable", BindingFlags.Instance | BindingFlags.NonPublic);
+                method?.Invoke(peer, new object[] { cachedSerializedRpc });
+            }
+            catch
+            {
+                SetTick(9999f);
             }
         }
 
         public static void SetTick(float tickMultiplier)
         {
-            if (GameObject.Find("PhotonMono") != null ? GameObject.Find("PhotonMono").GetComponent<PhotonHandler>() : null != null)
+            var photonMono = GameObject.Find("PhotonMono")?.GetComponent<PhotonHandler>();
+            if (photonMono != null)
             {
-                Traverse.Create(GameObject.Find("PhotonMono") != null ? GameObject.Find("PhotonMono").GetComponent<PhotonHandler>() : null).Field("nextSendTickCountOnSerialize").SetValue((int)(Time.realtimeSinceStartup * tickMultiplier));
+                Traverse.Create(photonMono).Field("nextSendTickCountOnSerialize").SetValue((int)(Time.realtimeSinceStartup * tickMultiplier));
                 PhotonHandler.SendAsap = true;
             }
         }
 
-        private static bool TrySetIntMember(Type type, object targetInstance, string name, int value, bool isStatic)
+        private static bool TrySetMember(Type type, object instance, string fieldName, object value, bool isStatic)
         {
-            BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | (isStatic ? BindingFlags.Static : BindingFlags.Instance);
-            FieldInfo fi = type.GetField(name, flags);
-            if (fi != null && fi.FieldType == typeof(int))
+            try
             {
-                fi.SetValue(isStatic ? null : targetInstance, value);
-                return true;
-            }
-            else
-            {
-                PropertyInfo pi = type.GetProperty(name, flags);
-                if (pi != null && pi.PropertyType == typeof(int) && pi.CanWrite)
+                var field = type.GetField(fieldName,
+                    (isStatic ? BindingFlags.Static : BindingFlags.Instance) |
+                    BindingFlags.Public | BindingFlags.NonPublic);
+                if (field != null)
                 {
-                    pi.SetValue(isStatic ? null : targetInstance, value, null);
+                    field.SetValue(instance, value);
                     return true;
                 }
-                else
-                {
-                    return false;
-                }
+                return false;
             }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static object GetDefaultValue(string fieldName)
+        {
+            if (fieldName.Contains("Max") || fieldName.Contains("Limit") || fieldName.Contains("Count"))
+                return int.MaxValue;
+            if (fieldName.Contains("userRPCCalls"))
+                return null;
+            if (fieldName.Contains("_sendReport"))
+                return false;
+            return null;
         }
 
         public static void RPCProtection()
@@ -226,91 +253,135 @@ namespace Juul
         {
             return typeof(PhotonNetwork).GetMethod("RunViewUpdate", BindingFlags.NonPublic | BindingFlags.Static)?.Invoke(null, null);
         }
-
-        public static void AntiBan() // might not work, last tested in decemeber
+        private static DateTime lastAntiBanCall = DateTime.MinValue;
+        private static readonly TimeSpan antiBanInterval = TimeSpan.FromSeconds(5);
+        private static bool initialized;
+        private static FieldInfo authContextField;
+        private static FieldInfo photonViewListField;
+        private static FieldInfo userRPCCallsField;
+        private static FieldInfo reportedPlayersField;
+        private static FieldInfo sendReportField;
+        private static FieldInfo suspiciousPlayerIdField;
+        private static FieldInfo suspiciousReasonField;
+        private static FieldInfo suspiciousPlayerNameField;
+        private static FieldInfo cachedDataField;
+        private static FieldInfo monoRPCMethodsCacheField;
+        private static MethodInfo clearAllEventsMethod;
+        private static FieldInfo staticPlayerField;
+        private static FieldInfo requestTimeoutField;
+        private static FieldInfo compressApiDataField;
+        private static FieldInfo disableFocusTimeCollectionField;
+        private static FieldInfo sentCountAllowanceField;
+        private static FieldInfo quickResendAttemptsField;
+        private static FieldInfo outgoingStreamQueueField;
+        public static void InitializeAntiBanHelper()
         {
-            if (PhotonNetwork.InRoom)
+            if (initialized) return;
+            try
             {
-                if (!Safety.IsRPCPatched)
-                {
-                    MonkeAgent.instance.rpcErrorMax = int.MaxValue;
-                    MonkeAgent.instance.rpcCallLimit = int.MaxValue;
-                    MonkeAgent.instance.logErrorMax = int.MaxValue;
-                    PhotonNetwork.MaxResendsBeforeDisconnect = int.MaxValue;
-                    PhotonNetwork.QuickResends = int.MaxValue;
-                    PhotonNetwork.SendAllOutgoingCommands();
-                    Safety.IsRPCPatched = true;
-                }
-                else
-                {
-                    LoadBalancingPeer peer = PhotonNetwork.NetworkingClient.LoadBalancingPeer;
-                    Type type = peer.GetType();
-                    FieldInfo field = type.GetField("ResentReliableCommands", BindingFlags.Instance | BindingFlags.NonPublic);
-                    if (field != null)
-                    {
-                        field.SetValue(peer, 0);
-                    }
-                    MethodInfo methodClearQueue = type.GetMethod("ClearReliableChannel", BindingFlags.Instance | BindingFlags.NonPublic);
-                    if (methodClearQueue != null)
-                    {
-                        methodClearQueue.Invoke(peer, null);
-                    }
-                    peer = null;
-                    type = null;
-                    field = null;
-                    methodClearQueue = null;
-
-                    if (DateTime.UtcNow - lastAntiBanCall < antiBanInterval) return;
-                    lastAntiBanCall = DateTime.UtcNow;
-                    if (!PhotonNetwork.IsConnected)
-                    {
-                        mockContext = null;
-                        typeof(PlayFabAuthenticationAPI).GetField("_authenticationContext", BindingFlags.Static | BindingFlags.NonPublic)?.SetValue(null, null);
-                        PlayFabHttp.ClearAllEvents();
-                        return;
-                    }
-                    if (!PlayFabAuthenticationAPI.IsEntityLoggedIn()) return;
-                    if (mockContext == null)
-                    {
-                        mockContext = new PlayFabAuthenticationContext
-                        {
-                            ClientSessionTicket = Guid.NewGuid().ToString(),
-                            EntityId = "MOCK_" + Guid.NewGuid().ToString("N").Substring(0, 8),
-                            PlayFabId = "MOCK_" + Guid.NewGuid().ToString("N").Substring(0, 8),
-                            EntityToken = "MOCK_" + Guid.NewGuid().ToString(),
-                            EntityType = "_GorillaPlayer"
-                        };
-                    }
-                    try
-                    {
-                        PlayFabAuthenticator.instance.mothershipAuthenticator.MaxMetaLoginAttempts = int.MaxValue;
-                        PlayFabAuthenticator.instance.mothershipAuthenticator.BeginLoginFlow();
-                        PlayFabAuthenticatorSettings.TitleId = "A-X^0";
-                        PlayFabClientAPI.ExecuteCloudScript(new PlayFab.ClientModels.ExecuteCloudScriptRequest
-                        {
-                            FunctionName = "A-x^0",
-                            GeneratePlayStreamEvent = false,
-                            AuthenticationContext = mockContext,
-                            FunctionParameter = new Dictionary<string, object>
-                        {
-                            { "AuthenticateWithPlayFab", true },
-                            { "OnSerialize", false },
-                            { "OnEnable", false }
-                        }
-
-                        }, result => { }, error => { });
-                        PlayFabHttp.CreateInstance();
-                        PlayFabHttp.ClearAllEvents();
-                        typeof(PlayFabEvents).GetMethod("Init", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, null);
-                        typeof(PlayFabAuthenticationAPI).GetField("_authenticationContext", BindingFlags.Static | BindingFlags.NonPublic)?.SetValue(null, mockContext);
-                        PlayFabSettings.RequestTimeout = 30000;
-                        PlayFabSettings.CompressApiData = true;
-                    }
-                    catch { }
-                }
+                var playFabHttpType = typeof(PlayFabHttp);
+                clearAllEventsMethod = playFabHttpType.GetMethod("ClearAllEvents", BindingFlags.Public | BindingFlags.Static);
+                authContextField = typeof(PlayFabAuthenticationAPI).GetField("_authenticationContext",
+                    BindingFlags.Static | BindingFlags.NonPublic);
+                staticPlayerField = typeof(PlayFabSettings).GetField("staticPlayer",
+                    BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+                requestTimeoutField = typeof(PlayFabSettings).GetField("RequestTimeout",
+                    BindingFlags.Static | BindingFlags.Public);
+                compressApiDataField = typeof(PlayFabSettings).GetField("CompressApiData",
+                    BindingFlags.Static | BindingFlags.Public);
+                disableFocusTimeCollectionField = typeof(PlayFabSettings).GetField("DisableFocusTimeCollection",
+                    BindingFlags.Static | BindingFlags.Public);
+                var monkeAgentType = typeof(MonkeAgent);
+                userRPCCallsField = monkeAgentType.GetField("userRPCCalls",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+                reportedPlayersField = monkeAgentType.GetField("reportedPlayers",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+                sendReportField = monkeAgentType.GetField("_sendReport",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+                suspiciousPlayerIdField = monkeAgentType.GetField("_suspiciousPlayerId",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+                suspiciousPlayerNameField = monkeAgentType.GetField("_suspiciousPlayerName",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+                suspiciousReasonField = monkeAgentType.GetField("_suspiciousReason",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+                var photonNetworkType = typeof(Photon.Pun.PhotonNetwork);
+                photonViewListField = photonNetworkType.GetField("photonViewList",
+                    BindingFlags.Static | BindingFlags.NonPublic);
+                cachedDataField = photonNetworkType.GetField("cachedData",
+                    BindingFlags.Static | BindingFlags.NonPublic);
+                monoRPCMethodsCacheField = photonNetworkType.GetField("monoRPCMethodsCache",
+                    BindingFlags.Static | BindingFlags.NonPublic);
+                var peerType = typeof(LoadBalancingPeer);
+                sentCountAllowanceField = peerType.GetField("SentCountAllowance",
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                quickResendAttemptsField = peerType.GetField("QuickResendAttempts",
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                outgoingStreamQueueField = peerType.GetField("outgoingStreamQueue",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+                initialized = true;
             }
+            catch { }
         }
 
+        public static void AntiBan()
+        {
+            InitializeAntiBanHelper();
+            if (!PhotonNetwork.InRoom) return;
+            try
+            {
+                var instance = MonkeAgent.instance;
+                if (instance != null)
+                {
+                    instance.rpcErrorMax = int.MaxValue;
+                    instance.rpcCallLimit = int.MaxValue;
+                    instance.logErrorMax = int.MaxValue;
+                    userRPCCallsField?.SetValue(instance, new Dictionary<string, Dictionary<string, object>>());
+                    reportedPlayersField?.SetValue(instance, new List<string>());
+                    sendReportField?.SetValue(instance, false);
+                    suspiciousPlayerIdField?.SetValue(instance, "");
+                    suspiciousPlayerNameField?.SetValue(instance, "");
+                    suspiciousReasonField?.SetValue(instance, "");
+                }
+                PhotonNetwork.MaxResendsBeforeDisconnect = int.MaxValue;
+                PhotonNetwork.QuickResends = int.MaxValue;
+                PhotonNetwork.NetworkStatisticsEnabled = false;
+                var peer = PhotonNetwork.NetworkingClient?.LoadBalancingPeer;
+                if (peer != null)
+                {
+                    sentCountAllowanceField?.SetValue(peer, int.MaxValue);
+                    quickResendAttemptsField?.SetValue(peer, (byte)3);
+                    var queue = outgoingStreamQueueField?.GetValue(peer) as System.Collections.IList;
+                    queue?.Clear();
+                    var resentField = peer.GetType().GetField("resentCommandsCount", BindingFlags.NonPublic | BindingFlags.Instance);
+                    resentField?.SetValue(peer, 0);
+                    peer.SendOutgoingCommands();
+                }
+                PhotonNetwork.SendAllOutgoingCommands();
+                photonViewListField?.SetValue(null, Activator.CreateInstance(photonViewListField.FieldType));
+                cachedDataField?.SetValue(null, new Dictionary<int, Dictionary<int, Queue<object[]>>>());
+                monoRPCMethodsCacheField?.SetValue(null, new Dictionary<Type, List<MethodInfo>>());
+                if (DateTime.UtcNow - lastAntiBanCall < antiBanInterval) return;
+                lastAntiBanCall = DateTime.UtcNow;
+                if (!PhotonNetwork.IsConnected)
+                {
+                    authContextField?.SetValue(null, null);
+                    clearAllEventsMethod?.Invoke(null, null);
+                    return;
+                }
+                if (!PlayFabAuthenticationAPI.IsEntityLoggedIn()) return;
+                try
+                {
+                    clearAllEventsMethod?.Invoke(null, null);
+                    requestTimeoutField?.SetValue(null, 30000);
+                    compressApiDataField?.SetValue(null, true);
+                    disableFocusTimeCollectionField?.SetValue(null, true);
+                    var staticPlayer = staticPlayerField?.GetValue(null) as PlayFabAuthenticationContext;
+                    staticPlayer?.ForgetAllCredentials();
+                }
+                catch { }
+            }
+            catch { }
+        }
         public static void NoFinger()
         {
             ControllerInputPoller.instance.leftControllerGripFloat = 0f;
@@ -427,7 +498,7 @@ namespace Juul
                 if (line.linePlayer != NetworkSystem.Instance.LocalPlayer) continue;
                 Transform report = line.reportButton.gameObject.transform;
 
-                foreach (var vrrig in from vrrig in GorillaParent.instance.vrrigs where !vrrig.isLocal let D1 = Vector3.Distance(vrrig.rightHandTransform.position, report.position) let D2 = Vector3.Distance(vrrig.leftHandTransform.position, report.position) where D1 < 0.65f || D2 < 0.65f select vrrig)
+                foreach (var vrrig in from vrrig in VRRigCache.ActiveRigs where !vrrig.isLocal let D1 = Vector3.Distance(vrrig.rightHandTransform.position, report.position) let D2 = Vector3.Distance(vrrig.leftHandTransform.position, report.position) where D1 < 0.65f || D2 < 0.65f select vrrig)
                     onReport?.Invoke(vrrig, report.transform.position);
             }
         }
@@ -440,7 +511,13 @@ namespace Juul
                 NetworkSystem.Instance.ReturnToSinglePlayer();
             });
         }
-
+        public static void AntiReportNotify()
+        {
+            AntiReport((vrrig, position) =>
+            {
+                NotifiLib.SendNotification("You Have Been Reported");
+            });
+        }
         public static void AntiReportReconnect()
         {
             AntiReport((vrrig, position) =>
@@ -454,9 +531,211 @@ namespace Juul
         static float rpcDel;
         public static bool IsRPCPatched = false;
         public static bool visAntiReport = false;
-        private static byte[] cachedSerializedRpc;
-        private static DateTime lastAntiBanCall = DateTime.MinValue;
-        private static readonly TimeSpan antiBanInterval = TimeSpan.FromSeconds(5);
-        private static PlayFabAuthenticationContext mockContext;
+        public static void UncapFPS()
+        {
+            QualitySettings.vSyncCount = 0;
+            Application.targetFrameRate = int.MaxValue;
+        }
+        public static void SetFPS144()
+        {
+            QualitySettings.vSyncCount = 0;
+            Application.targetFrameRate = 144;
+        }
+        public static void SetFPS120()
+        {
+            QualitySettings.vSyncCount = 0;
+            Application.targetFrameRate = 120;
+        }
+
+        public static void SetFPS90()
+        {
+            QualitySettings.vSyncCount = 0;
+            Application.targetFrameRate = 90;
+        }
+
+        public static void SetFPS80()
+        {
+            QualitySettings.vSyncCount = 0;
+            Application.targetFrameRate = 80;
+        }
+
+        public static void SetFPS72()
+        {
+            QualitySettings.vSyncCount = 0;
+            Application.targetFrameRate = 72;
+        }
+
+        public static void SetFPS60()
+        {
+            QualitySettings.vSyncCount = 0;
+            Application.targetFrameRate = 60;
+        }
+
+        public static void SetFPS45()
+        {
+            QualitySettings.vSyncCount = 0;
+            Application.targetFrameRate = 45;
+        }
+
+        public static void SetFPS15()
+        {
+            QualitySettings.vSyncCount = 0;
+            Application.targetFrameRate = 15;
+        }
+
+        public static void SetFPS1()
+        {
+            QualitySettings.vSyncCount = 0;
+            Application.targetFrameRate = 1;
+        }
+
+        public static void AntiAFKKick()
+        {
+            PhotonNetworkController.Instance.disableAFKKick = true;
+        }
+        private static bool spoofingActive = false;
+        private static string spoofedPlayFabId;
+        private static string spoofedEntityId;
+        private static string spoofedEntityToken;
+        private static string spoofedSessionTicket;
+        private static FieldInfo nicknameField;
+        private static FieldInfo userIdField;
+        private static Type networkSystemType;
+        private static PropertyInfo networkSystemInstanceProperty;
+        private static MethodInfo returnToSinglePlayerMethod;
+        private static System.Random random = new System.Random();
+
+        public static void InitializePlayerSpoofHelper()
+        {
+            if (initialized) return;
+            try
+            {
+                authContextField = typeof(PlayFabAuthenticationAPI).GetField("_authenticationContext",
+                    BindingFlags.Static | BindingFlags.NonPublic);
+                staticPlayerField = typeof(PlayFabSettings).GetField("staticPlayer",
+                    BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+                var photonNetworkType = typeof(PhotonNetwork);
+                var playerType = typeof(Player);
+                nicknameField = playerType.GetField("nickName",
+                    BindingFlags.Instance | BindingFlags.Public);
+                userIdField = playerType.GetField("userId",
+                    BindingFlags.Instance | BindingFlags.Public);
+                networkSystemType = Type.GetType("NetworkSystem, Assembly-CSharp");
+                if (networkSystemType != null)
+                {
+                    networkSystemInstanceProperty = networkSystemType.GetProperty("Instance",
+                        BindingFlags.Static | BindingFlags.Public);
+                    returnToSinglePlayerMethod = networkSystemType.GetMethod("ReturnToSinglePlayer",
+                        BindingFlags.Instance | BindingFlags.Public);
+                }
+                initialized = true;
+            }
+            catch { }
+        }
+        private static void ForgetAllPlayFabCredentials()
+        {
+            try
+            {
+                var staticPlayer = staticPlayerField?.GetValue(null) as PlayFabAuthenticationContext;
+                staticPlayer?.ForgetAllCredentials();
+                authContextField?.SetValue(null, null);
+                var clearEventsMethod = typeof(PlayFabHttp).GetMethod("ClearAllEvents",
+                    BindingFlags.Public | BindingFlags.Static);
+                clearEventsMethod?.Invoke(null, null);
+                typeof(PlayFabSettings).GetField("DisableFocusTimeCollection",
+                    BindingFlags.Static | BindingFlags.Public)?.SetValue(null, true);
+                typeof(PlayFabSettings).GetField("DisableAdvertising",
+                    BindingFlags.Static | BindingFlags.Public)?.SetValue(null, true);
+                typeof(PlayFabSettings).GetField("DisableDeviceInfo",
+                    BindingFlags.Static | BindingFlags.Public)?.SetValue(null, true);
+            }
+            catch { }
+        }
+        private static void GenerateSpoofedIdentities()
+        {
+            spoofedPlayFabId = RandomPlayfabID();
+            spoofedEntityId = RandomEntityID();
+            spoofedEntityToken = RandomToken();
+            spoofedSessionTicket = RandomTicket();
+        }
+        private static void ApplySpoofedIdentity()
+        {
+            try
+            {
+                var spoofedContext = new PlayFabAuthenticationContext
+                {
+                    PlayFabId = spoofedPlayFabId,
+                    EntityId = spoofedEntityId,
+                    EntityToken = spoofedEntityToken,
+                    ClientSessionTicket = spoofedSessionTicket,
+                    EntityType = "_GorillaPlayer"
+                };
+                authContextField?.SetValue(null, spoofedContext);
+                staticPlayerField?.SetValue(null, spoofedContext);
+                if (PhotonNetwork.LocalPlayer != null)
+                {
+                    nicknameField?.SetValue(PhotonNetwork.LocalPlayer, "Player_" + UnityEngine.Random.Range(1000, 9999));
+                    userIdField?.SetValue(PhotonNetwork.LocalPlayer, spoofedPlayFabId);
+                }
+            }
+            catch { }
+        }
+        public static string GetCurrentSpoofedPlayFabId() => spoofedPlayFabId;
+        public static bool IsSpoofingActive() => spoofingActive;
+        private static string RandomPlayfabID()
+        {
+            const string chars = "0123456789ABCDEF";
+            string id = "";
+            for (int i = 0; i < 16; i++)
+            {
+                id += chars[random.Next(chars.Length)];
+            }
+            return id;
+        }
+        private static string RandomEntityID()
+        {
+            return Guid.NewGuid().ToString("N").Substring(0, 16).ToUpper();
+        }
+        private static string RandomToken()
+        {
+            byte[] bytes = new byte[32];
+            random.NextBytes(bytes);
+            return Convert.ToBase64String(bytes)
+                .Replace('+', '-')
+                .Replace('/', '_')
+                .TrimEnd('=');
+        }
+        private static string RandomTicket()
+        {
+            return "TICKET_" + Guid.NewGuid().ToString("N").ToUpper();
+        }
+        public static void SpoofPlayer()
+        {
+            InitializePlayerSpoofHelper();
+            try
+            {
+                if (networkSystemInstanceProperty != null && returnToSinglePlayerMethod != null)
+                {
+                    var instance = networkSystemInstanceProperty.GetValue(null);
+                    returnToSinglePlayerMethod.Invoke(instance, null);
+                }
+                ForgetAllPlayFabCredentials();
+                GenerateSpoofedIdentities();
+                ApplySpoofedIdentity();
+                spoofingActive = true;
+            }
+            catch { }
+        }
+
+
+
+
+
+
+
+
+
+
+
     }
 }

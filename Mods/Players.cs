@@ -30,106 +30,61 @@ namespace Juul
     {
         public static int Longinde = 0;
 
-        private static float lastGhostToggleTime;
-        private static float lastInvisToggleTime;
-        private static float lastRightInput;
-        private static float lastRightInput2;
-        private static bool ghostEnabled => Time.time - lastGhostToggleTime < 0.1f ? false : GorillaTagger.Instance?.offlineVRRig != null && !VRRig.LocalRig.enabled;
-        private static float ghostStateEnabledTime = -1f;
-        private static float invisStateEnabledTime = -1f;
-        private static float rightInputPressedTime = -1f;
+        private static bool LRI;
+        private static bool GS;
+        private static bool IS;
+        private static bool LLI;
+        private static bool WRE;
 
-        private static bool GhostState
-        {
-            get => ghostStateEnabledTime > 0f;
-            set
-            {
-                if (value) ghostStateEnabledTime = Time.time;
-                else ghostStateEnabledTime = -1f;
-            }
-        }
-
-        private static bool InvisState
-        {
-            get => invisStateEnabledTime > 0f;
-            set
-            {
-                if (value) invisStateEnabledTime = Time.time;
-                else invisStateEnabledTime = -1f;
-            }
-        }
-
-        private static bool LastRightInput
-        {
-            get => rightInputPressedTime > 0f && Time.time - rightInputPressedTime < Time.deltaTime * 2f;
-            set
-            {
-                if (value) rightInputPressedTime = Time.time;
-                else rightInputPressedTime = -1f;
-            }
-        }
-
-        private static float lastInput2Time = -1f;
-        private static bool LastInput2
-        {
-            get => lastInput2Time > 0f && Time.time - lastInput2Time < Time.deltaTime * 2f;
-            set
-            {
-                if (value) lastInput2Time = Time.time;
-                else lastInput2Time = -1f;
-            }
-        }
-
-        
         public static void InvisibleMonke()
         {
-            bool triggerButton = Buttons.ghostview
+            bool inputPressed = Buttons.ghostview
                 ? ControllerInputPoller.instance.leftControllerPrimaryButton
                 : ControllerInputPoller.instance.leftControllerSecondaryButton;
 
-            bool inputPressed = triggerButton || UnityInput.Current.GetKey(KeyCode.T);
+            inputPressed = inputPressed || UnityInput.Current.GetKey(KeyCode.T);
 
-            if (inputPressed && Time.time >= invisStateEnabledTime + 0.2f)
+            if (inputPressed && !LLI)
             {
-                invisStateEnabledTime = Time.time;
+                IS = !IS;
 
-                if (InvisState)
+                if (IS)
                 {
-                    InvisState = false;
-                    GorillaTagger.Instance.offlineVRRig.enabled = false;
-                    GorillaTagger.Instance.offlineVRRig.transform.position = new Vector3(100f, 0f, 100f);
-
-                    if (Buttons.ghostview)
-                    {
-                        Renderer rigRenderer = GorillaTagger.Instance.offlineVRRig.mainSkin.GetComponent<Renderer>();
-                        rigRenderer.material.shader = Shader.Find("GUI/Text Shader");
-                        Color hollowColor = Color.white;
-                        hollowColor.a = 0.3f;
-                        rigRenderer.material.color = hollowColor;
-                    }
+                    WRE = VRRig.LocalRig.enabled;
+                    VRRig.LocalRig.enabled = false;
+                    VRRig.LocalRig.transform.position =
+                        GorillaTagger.Instance.bodyCollider.transform.position - Vector3.up * 99999f;
                 }
                 else
                 {
-                    InvisState = true;
+                    VRRig.LocalRig.enabled = WRE;
                     Visual.RigColorFix();
-                    GorillaTagger.Instance.offlineVRRig.enabled = true;
                 }
             }
+
+            if (IS)
+            {
+                VRRig.LocalRig.enabled = false;
+                VRRig.LocalRig.transform.position =
+                    GorillaTagger.Instance.bodyCollider.transform.position - Vector3.up * 99999f;
+            }
+
+            LLI = inputPressed;
         }
 
         public static void GhostMonke()
         {
             bool input = Inputs.RightSecondary;
 
-            if (input && !LastRightInput)
+            if (input && !LRI)
             {
-                GhostState = !GhostState;
+                GS = !GS;
 
-                if (GhostState)
+                if (GS)
                 {
                     if (Buttons.ghostview)
                     {
-                        Renderer rigRenderer = GorillaTagger.Instance.offlineVRRig.mainSkin.GetComponent<Renderer>();
+                        Renderer rigRenderer = VRRig.LocalRig.mainSkin.GetComponent<Renderer>();
                         rigRenderer.material.shader = Shader.Find("GUI/Text Shader");
                         Color hollowColor = Color.white;
                         hollowColor.a = 0.3f;
@@ -139,21 +94,19 @@ namespace Juul
                 }
                 else
                 {
-                    if (Buttons.ghostview)
-                    {
-                        Visual.RigColorFix();
-                    }
+                    Visual.RigColorFix();
                     VRRig.LocalRig.enabled = true;
                 }
             }
-
-            LastRightInput = input;
+            LRI = input;
         }
 
         public static void GhostviewClean()
         {
             Buttons.ghostview = false;
+            GS = false;
             Visual.RigColorFix();
+            VRRig.LocalRig.enabled = true;
         }
 
         public static void SSRgbMonkey()
@@ -202,7 +155,44 @@ namespace Juul
         {
             GorillaLocomotion.GTPlayer.Instance.transform.localScale = new Vector3(1.15f, 1.15f, 1.15f);
         }
+        public static float armLength = 1f;
+        public static float minArmLength = 0.5f;
+        public static float maxArmLength = 3f;
+        public static void ChangeArmLenth()
+        {
+            if (Inputs.RightGrip)
+            {
+                armLength += Time.deltaTime * 2f;
+                if (armLength > maxArmLength) armLength = maxArmLength;
+                GorillaLocomotion.GTPlayer.Instance.transform.localScale = new Vector3(1f, 1f, 1f) * armLength;
+                if (GorillaTagger.Instance.offlineVRRig != null)
+                {
+                    GorillaTagger.Instance.offlineVRRig.transform.localScale = new Vector3(1f, 1f, 1f) * armLength;
+                }
+            }
+            if (Inputs.LeftGrip)
+            {
+                armLength -= Time.deltaTime * 2f;
+                if (armLength < minArmLength) armLength = minArmLength;
 
+                GorillaLocomotion.GTPlayer.Instance.transform.localScale = new Vector3(1f, 1f, 1f) * armLength;
+
+                if (GorillaTagger.Instance.offlineVRRig != null)
+                {
+                    GorillaTagger.Instance.offlineVRRig.transform.localScale = new Vector3(1f, 1f, 1f) * armLength;
+                }
+            }
+            if (Inputs.RightPrimary)
+            {
+                armLength = 1f;
+                GorillaLocomotion.GTPlayer.Instance.transform.localScale = Vector3.one;
+
+                if (GorillaTagger.Instance.offlineVRRig != null)
+                {
+                    GorillaTagger.Instance.offlineVRRig.transform.localScale = Vector3.one;
+                }
+            }
+        }
         public static void Spinbot()
         {
             if (Inputs.RightGrip)
@@ -216,19 +206,95 @@ namespace Juul
                 VRRig.LocalRig.enabled = true;
             }
         }
-
-        public static void HeilaCopter()
+        public static void Helicopter()
         {
             if (Inputs.RightGrip)
             {
                 VRRig.LocalRig.enabled = false;
-                VRRig.LocalRig.transform.position = Vector3.up * 10;
+                VRRig.LocalRig.transform.position = Vector3.Lerp(VRRig.LocalRig.transform.position, Vector3.up * 10, Time.deltaTime * 5f);
                 VRRig.LocalRig.transform.Rotate(new Vector3(0, 10, 0));
+                VRRig.LocalRig.leftHandTransform.localPosition = new Vector3(-0.5f, 0, 0);
+                VRRig.LocalRig.leftHandTransform.localRotation = Quaternion.Euler(0, 0, 90);
+                VRRig.LocalRig.rightHandTransform.localPosition = new Vector3(0.5f, 0, 0);
+                VRRig.LocalRig.rightHandTransform.localRotation = Quaternion.Euler(0, 0, -90);
+                GTPlayer.Instance.transform.Rotate(new Vector3(0, 20, 0));
             }
             else
             {
                 VRRig.LocalRig.enabled = true;
+                VRRig.LocalRig.leftHandTransform.localPosition = Vector3.zero;
+                VRRig.LocalRig.leftHandTransform.localRotation = Quaternion.identity;
+                VRRig.LocalRig.rightHandTransform.localPosition = Vector3.zero;
+                VRRig.LocalRig.rightHandTransform.localRotation = Quaternion.identity;
             }
         }
+        public static void Bayblade()
+        {
+            if (Inputs.RightGrip)
+            {
+                VRRig.LocalRig.enabled = false;
+                VRRig.LocalRig.transform.Rotate(new Vector3(0, 10, 0));
+                VRRig.LocalRig.leftHandTransform.localPosition = new Vector3(-0.5f, 0, 0);
+                VRRig.LocalRig.leftHandTransform.localRotation = Quaternion.Euler(0, 0, 90);
+                VRRig.LocalRig.rightHandTransform.localPosition = new Vector3(0.5f, 0, 0);
+                VRRig.LocalRig.rightHandTransform.localRotation = Quaternion.Euler(0, 0, -90);
+                GTPlayer.Instance.transform.Rotate(new Vector3(0, 20, 0));
+            }
+            else
+            {
+                VRRig.LocalRig.enabled = true;
+                VRRig.LocalRig.leftHandTransform.localPosition = Vector3.zero;
+                VRRig.LocalRig.leftHandTransform.localRotation = Quaternion.identity;
+                VRRig.LocalRig.rightHandTransform.localPosition = Vector3.zero;
+                VRRig.LocalRig.rightHandTransform.localRotation = Quaternion.identity;
+            }
+        }
+        public static void Tpose()
+        {
+            if (Inputs.RightGrip)
+            {
+                VRRig.LocalRig.enabled = false;
+                VRRig.LocalRig.leftHandTransform.localPosition = new Vector3(-1f, 0.5f, 0f);
+                VRRig.LocalRig.leftHandTransform.localRotation = Quaternion.Euler(0, 0, 0);
+                VRRig.LocalRig.rightHandTransform.localPosition = new Vector3(1f, 0.5f, 0f);
+                VRRig.LocalRig.rightHandTransform.localRotation = Quaternion.Euler(0, 0, 0);
+            }
+            else
+            {
+                VRRig.LocalRig.enabled = true;
+                VRRig.LocalRig.leftHandTransform.localPosition = Vector3.zero;
+                VRRig.LocalRig.leftHandTransform.localRotation = Quaternion.identity;
+                VRRig.LocalRig.rightHandTransform.localPosition = Vector3.zero;
+                VRRig.LocalRig.rightHandTransform.localRotation = Quaternion.identity;
+            }
+        }
+        public static float walkCycle = 0f;
+
+        public static void MinecraftAnimations()
+        {
+            if (Inputs.RightGrip)
+            {
+                VRRig.LocalRig.enabled = false;
+                VRRig.LocalRig.leftHandTransform.localPosition = new Vector3(-0.3f, -0.5f, 0.2f);
+                VRRig.LocalRig.leftHandTransform.localRotation = Quaternion.Euler(0, 0, 0);
+                VRRig.LocalRig.rightHandTransform.localPosition = new Vector3(0.3f, -0.5f, 0.2f);
+                VRRig.LocalRig.rightHandTransform.localRotation = Quaternion.Euler(0, 0, 0);
+                walkCycle += Time.deltaTime * 3f; 
+                float swing = Mathf.Sin(walkCycle) * 0.3f;
+                VRRig.LocalRig.leftHandTransform.localPosition = new Vector3(-0.3f, -0.5f, 0.2f + swing);
+                VRRig.LocalRig.rightHandTransform.localPosition = new Vector3(0.3f, -0.5f, 0.2f - swing);
+            }
+            else
+            {
+                VRRig.LocalRig.enabled = true;
+                VRRig.LocalRig.leftHandTransform.localPosition = Vector3.zero;
+                VRRig.LocalRig.leftHandTransform.localRotation = Quaternion.identity;
+                VRRig.LocalRig.rightHandTransform.localPosition = Vector3.zero;
+                VRRig.LocalRig.rightHandTransform.localRotation = Quaternion.identity;
+            }
+        }
+        
+        
+
     }
 }

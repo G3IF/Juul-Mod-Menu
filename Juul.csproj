@@ -12,11 +12,16 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="Resources\**" />
-    <EmbeddedResource Remove="Resources\**" />
     <None Remove="Resources\**" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Classes\GradiantManager.cs" />
+    <EmbeddedResource Include="Assets\Resources\Select.mp3" />
+    <EmbeddedResource Include="Assets\Resources\Home.mp3" />
+    <EmbeddedResource Include="Assets\Resources\Loaded.mp3" />
+	<EmbeddedResource Include="Assets\Resources\Juul.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Classes\ColorManager.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.3">

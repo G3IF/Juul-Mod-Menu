@@ -50,7 +50,7 @@ namespace Juul
             }
 
             Vector3 startPos = VRRig.LocalRig.transform.position;
-            VRRig[] rigs = GorillaParent.instance.vrrigs.Where(vrrig => !PlayerIsTagged(vrrig)).ToArray();
+            VRRig[] rigs = VRRigCache.ActiveRigs.Where(vrrig => !PlayerIsTagged(vrrig)).ToArray();
 
             if (rigs.Length <= 0)
             {
@@ -75,7 +75,7 @@ namespace Juul
 
             if (!PlayerIsTagged(VRRig.LocalRig))
             {
-                foreach (VRRig vrrig in GorillaParent.instance.vrrigs)
+                foreach (VRRig vrrig in VRRigCache.ActiveRigs)
                 {
                     if (PlayerIsTagged(vrrig))
                     {
@@ -99,7 +99,7 @@ namespace Juul
             {
                 try
                 {
-                    foreach (VRRig rig in GorillaParent.instance.vrrigs)
+                    foreach (VRRig rig in VRRigCache.ActiveRigs)
                     {
                         if (rig != GorillaTagger.Instance.offlineVRRig)
                         {

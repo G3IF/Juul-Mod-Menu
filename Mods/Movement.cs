@@ -30,15 +30,8 @@ namespace Juul
 {
     public class Movement
     {
-        public static float FlySpeed = 20f;
-        public static float NoclipFlySpeed = 20f;
         public static int Speedinde = 0;
-        public static GameObject platL, platR;
-        public static string[] platModeNames = { "Invisible", "Transparent", "Solid" };
-        public static int platMode = 1;
-
         public static string[] platInputNames = { "Grip", "Trigger" };
-        public static int platInput = 0;
 
 
 
@@ -48,7 +41,7 @@ namespace Juul
         {
             if (Inputs.RightPrimary)
             {
-                GTPlayer.Instance.transform.position += GorillaTagger.Instance.headCollider.transform.forward * (Time.deltaTime * NoclipFlySpeed);
+                GTPlayer.Instance.transform.position += GorillaTagger.Instance.headCollider.transform.forward * (Time.deltaTime * flyspeed);
                 GorillaTagger.Instance.rigidbody.linearVelocity = Vector3.zero;
                 foreach (MeshCollider v in Resources.FindObjectsOfTypeAll<MeshCollider>())
                     v.enabled = false;
@@ -59,16 +52,21 @@ namespace Juul
                     v.enabled = true;
             }
         }
+        public static float flyspeed = 5f; 
+        private static int speedIndex = 1; 
+        private static float[] speedOptions = new float[] { 2f, 5f, 10f, 20f, 50f };
+        private static string[] speedNames = new string[] { "Slow", "Normal", "Fast", "Very Fast", "Extreme" };
 
         public static void Fly()
         {
             if (Inputs.RightPrimary)
             {
-                GTPlayer.Instance.transform.position += GorillaTagger.Instance.headCollider.transform.forward * (Time.deltaTime * FlySpeed);
+                GTPlayer.Instance.transform.position += GorillaTagger.Instance.headCollider.transform.forward * (Time.deltaTime * flyspeed);
                 GorillaTagger.Instance.rigidbody.linearVelocity = Vector3.zero;
             }
         }
 
+      
         public static void Noclip()
         {
             if (Inputs.RightPrimary)
@@ -142,11 +140,28 @@ namespace Juul
         }
         public static Vector3 pos;
 
+        public static float jumpspeed = 20f;
+        public static float jumpmultiplier = 20f;
+
+        private static float[] speedOptions2 = new float[] { 0.5f, 7f, 10f, 25f };
+        private static float[] multiplierOptions = new float[] { 0.5f, 2.1f, 5f, 15f };
+        private static string[] speedNames2 = new string[] { "Slow Boost", "Mosa Boost", "Speed Boost", "Insane Boost" };
+        private static int speedIndex2 = 2; 
+
         public static void SpeedBoost()
         {
-            GTPlayer.Instance.maxJumpSpeed = 20;
-            GTPlayer.Instance.jumpMultiplier = 20;
+            GTPlayer.Instance.maxJumpSpeed = jumpspeed;
+            GTPlayer.Instance.jumpMultiplier = jumpmultiplier;
         }
+        public static void GripSpeedBoost()
+        {
+            if (Inputs.RightGrip)
+            {
+                GTPlayer.Instance.maxJumpSpeed = jumpspeed;
+                GTPlayer.Instance.jumpMultiplier = jumpmultiplier;
+            }
+        }
+      
 
         public static void WASDFly()
         {
@@ -184,6 +199,12 @@ namespace Juul
             }
             pos = UnityInput.Current.mousePosition;
         }
+        public static GameObject platL = null;
+        public static GameObject platR = null;
+        public static int platMode = 0; 
+        public static int platInput = 0; 
+        public static float rainbowHue = 0f;
+
         public static void Platforms()
         {
             bool leftInput = (platInput == 0) ? Inputs.LeftGrip : Inputs.LeftTrigger;
@@ -198,15 +219,36 @@ namespace Juul
                     platL.transform.rotation = GorillaTagger.Instance.leftHandTransform.rotation;
                     platL.GetComponent<Renderer>().material.shader = Shader.Find("Sprites/Default");
                 }
+                platL.transform.position = GorillaTagger.Instance.leftHandTransform.position;
+                platL.transform.rotation = GorillaTagger.Instance.leftHandTransform.rotation;
                 Renderer rendL = platL.GetComponent<Renderer>();
-                if (platMode == 0) rendL.enabled = false;
-                else
+                switch (platMode)
                 {
-                    rendL.enabled = true;
-                    rendL.material.color = new Color(Core.BaseColor.r, Core.BaseColor.g, Core.BaseColor.b, (platMode == 1) ? 0.5f : 1f);
+                    case 0: 
+                        rendL.enabled = true;
+                        rendL.material.color = new Color(Core.BaseColor.r, Core.BaseColor.g, Core.BaseColor.b, 1f);
+                        break;
+                    case 1: 
+                        rendL.enabled = false;
+                        break;
+                    case 2: 
+                        rendL.enabled = true;
+                        rainbowHue += Time.deltaTime * 0.5f;
+                        if (rainbowHue > 1f) rainbowHue -= 1f;
+                        rendL.material.color = Color.HSVToRGB(rainbowHue, 1f, 1f);
+                        break;
+                    case 3: 
+                        rendL.enabled = true;
+                        rendL.material.color = new Color(Core.BaseColor.r, Core.BaseColor.g, Core.BaseColor.b, 0.3f); 
+                                                                                                                     
+                        break;
                 }
             }
-            else if (platL != null) { UnityEngine.Object.Destroy(platL); platL = null; }
+            else if (platL != null)
+            {
+                UnityEngine.Object.Destroy(platL);
+                platL = null;
+            }
             if (rightInput)
             {
                 if (platR == null)
@@ -217,16 +259,90 @@ namespace Juul
                     platR.transform.rotation = GorillaTagger.Instance.rightHandTransform.rotation;
                     platR.GetComponent<Renderer>().material.shader = Shader.Find("Sprites/Default");
                 }
+                platR.transform.position = GorillaTagger.Instance.rightHandTransform.position;
+                platR.transform.rotation = GorillaTagger.Instance.rightHandTransform.rotation;
                 Renderer rendR = platR.GetComponent<Renderer>();
-                if (platMode == 0) rendR.enabled = false;
-                else
+                switch (platMode)
                 {
-                    rendR.enabled = true;
-                    rendR.material.color = new Color(Core.BaseColor.r, Core.BaseColor.g, Core.BaseColor.b, (platMode == 1) ? 0.5f : 1f);
+                    case 0: 
+                        rendR.enabled = true;
+                        rendR.material.color = new Color(Core.BaseColor.r, Core.BaseColor.g, Core.BaseColor.b, 1f);
+                        break;
+                    case 1: 
+                        rendR.enabled = false;
+                        break;
+                    case 2: 
+                        rendR.enabled = true;
+                        rendR.material.color = Color.HSVToRGB(rainbowHue, 1f, 1f);
+                        break;
+                    case 3: 
+                        rendR.enabled = true;
+                        rendR.material.color = new Color(Core.BaseColor.r, Core.BaseColor.g, Core.BaseColor.b, 0.3f);
+                        break;
                 }
             }
-            else if (platR != null) { UnityEngine.Object.Destroy(platR); platR = null; }
+            else if (platR != null)
+            {
+                UnityEngine.Object.Destroy(platR);
+                platR = null;
+            }
+            if (platMode == 3)
+            {
+                if (leftInput || rightInput)
+                {
+                    foreach (MeshCollider v in Resources.FindObjectsOfTypeAll<MeshCollider>())
+                        v.enabled = false;
+                }
+                else
+                {
+                    foreach (MeshCollider v in Resources.FindObjectsOfTypeAll<MeshCollider>())
+                        v.enabled = true;
+                }
+            }
         }
+        private static string[] modeNames = new string[] { "Normal", "Invisible", "Rainbow", "Noclip" };
+   
+        public static void ChangeFlySpeed(bool forward)
+        {
+            if (forward)
+                speedIndex = (speedIndex + 1) % speedOptions.Length;
+            else
+                speedIndex = (speedIndex - 1 + speedOptions.Length) % speedOptions.Length;
+
+            flyspeed = speedOptions[speedIndex];
+            string message = $"Fly Speed Changed To: {speedNames[speedIndex]} ({flyspeed})";
+            NotifiLib.SendNotification("", message, 2.5f, NotifiLib.NotifiReason.Success);
+        }
+
+        public static void ChangeSpeedBoostSpeed(bool forward)
+        {
+            if (forward)
+                speedIndex = (speedIndex + 1) % speedOptions.Length;
+            else
+                speedIndex = (speedIndex - 1 + speedOptions.Length) % speedOptions.Length;
+
+            jumpspeed = speedOptions[speedIndex];
+            jumpmultiplier = multiplierOptions[speedIndex];
+            GTPlayer.Instance.maxJumpSpeed = jumpspeed;
+            GTPlayer.Instance.jumpMultiplier = jumpmultiplier;
+            string message = $"{speedNames[speedIndex]} (Jump: {jumpspeed}, Multi: {jumpmultiplier})";
+            NotifiLib.SendNotification("", message, 2.5f, NotifiLib.NotifiReason.Success);
+        }
+
+        public static void ChangePlatformType(bool forward)
+        {
+            if (forward)
+                platMode = (platMode + 1) % modeNames.Length;
+            else
+                platMode = (platMode - 1 + modeNames.Length) % modeNames.Length;
+
+            string message = $"Platform Type Changed To: {modeNames[platMode]}";
+            NotifiLib.SendNotification("", message, 2.5f, NotifiLib.NotifiReason.Success);
+        }
+
+
+
+
 
         public static Vector3? checkpointPos = null;
         public static GameObject orb = null;
@@ -258,7 +374,64 @@ namespace Juul
             orb = null;
             checkpointPos = null;
         }
+        private static bool wasLeftHandColliding = false;
+        private static bool wasRightHandColliding = false;
+        private static float pullStrength = 0.2f;
 
-      
+        public static void PullMod()
+        {
+            GTPlayer player = GTPlayer.Instance;
+            if (player == null) return;
+            bool leftColliding = player.leftHand.wasColliding;
+            bool rightColliding = player.rightHand.wasColliding;
+            if (Inputs.RightGrip && ((leftColliding && !wasLeftHandColliding) || (rightColliding && !wasRightHandColliding)))
+            {
+                Vector3 velocity = GorillaTagger.Instance.rigidbody.linearVelocity;
+                velocity.x *= pullStrength;
+                velocity.y = 0f;
+                velocity.z *= pullStrength;
+                Vector3 newPos = player.transform.position + velocity;
+                player.transform.position = newPos;
+            }
+            wasLeftHandColliding = leftColliding;
+            wasRightHandColliding = rightColliding;
+        }
+
+        public static void ChangePullStrength()
+        {
+            pullStrength += 2f;
+            if (pullStrength > 20f) pullStrength = 2f;
+            NotifiLib.SendNotification("", $"Pull Strength: {pullStrength}", 1.5f, NotifiLib.NotifiReason.Info);
+        }
+
+        public static float wallWalkAmount = 0.56f;
+
+        public static void WallAssist()
+        {
+            if (Inputs.RightGrip)
+            {
+                if (GTPlayer.Instance.rightHand.wasColliding)
+                {
+                    GTPlayer.Instance.GetComponent<Rigidbody>().linearVelocity += -GTPlayer.Instance.rightHand.controllerTransform.up * 0.56f;
+                    RaycastHit raycastHit;
+                    Physics.Raycast(GTPlayer.Instance.rightHand.controllerTransform.position, -GTPlayer.Instance.rightHand.controllerTransform.up, out raycastHit);
+                }
+            }
+
+            if (Inputs.LeftGrip)
+            {
+                if (GTPlayer.Instance.leftHand.wasColliding)
+                {
+                    GTPlayer.Instance.GetComponent<Rigidbody>().linearVelocity += -GTPlayer.Instance.leftHand.controllerTransform.up * 0.56f;
+                    RaycastHit raycastHit2;
+                    Physics.Raycast(GTPlayer.Instance.leftHand.controllerTransform.position, -GTPlayer.Instance.leftHand.controllerTransform.up, out raycastHit2);
+                }
+            }
+        }
+
+
+
+
+
     }
 }
