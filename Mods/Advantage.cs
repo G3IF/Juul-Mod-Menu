@@ -14,7 +14,6 @@ using System.Threading;
 using Hashtable = ExitGames.Client.Photon.Hashtable;
 using static Juul.Serialize2;
 
-
 namespace Juul
 {
     internal class Advantages

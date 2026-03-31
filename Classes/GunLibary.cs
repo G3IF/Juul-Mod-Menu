@@ -116,6 +116,49 @@ namespace Juul
         private static int currentSphereSize = 0;
         private static readonly float[] SphereScales = { 0.01f, 0.02f, 0.03f, 0.04f, 0.05f, 0.06f, 0.07f, 0.08f, 0.09f, 0.1f, 0.11f, 0.12f, 0.13f, 0.14f, 0.15f, 0.16f, 0.17f, 0.18f, 0.19f, 0.2f };
 
+        private static GameObject _gunLineObject;
+        private static LineRenderer _gunLineRenderer;
+        private static Material _gunLineMaterial;
+        private static Coroutine _gunLineCoroutine;
+        private static MonoBehaviour _gunLineHost;
+
+        private static LineRenderer GetOrCreateGunLine()
+        {
+            if (_gunLineRenderer == null || _gunLineObject == null)
+            {
+                if (_gunLineObject != null) GameObject.Destroy(_gunLineObject);
+                _gunLineObject = new GameObject("GunLine_Persistent");
+                _gunLineRenderer = _gunLineObject.AddComponent<LineRenderer>();
+                _gunLineMaterial = new Material(Core.UberShader);
+                _gunLineRenderer.material = _gunLineMaterial;
+                _gunLineRenderer.useWorldSpace = true;
+                _gunLineHost = _gunLineObject.AddComponent<GunLib>();
+                _gunLineCoroutine = null;
+            }
+            return _gunLineRenderer;
+        }
+
+        private static void UpdateGunLine(Vector3 handPos, Vector3 spherePos, Vector3 smoothMid)
+        {
+            var lineRenderer = GetOrCreateGunLine();
+            lineRenderer.startWidth = GunLineWidth;
+            lineRenderer.endWidth = GunLineWidth;
+            lineRenderer.startColor = LineColor;
+            lineRenderer.endColor = LineColor;
+            _gunLineMaterial.color = LineColor;
+            _gunLineObject.SetActive(true);
+
+            SetLineStyle(lineRenderer, handPos, spherePos, smoothMid);
+            lineRenderer.startColor = Color.Lerp(Core.BaseColor, Core.BaseColor, Mathf.PingPong(Time.time * 1, 0.5f));
+            lineRenderer.endColor = lineRenderer.startColor;
+        }
+
+        private static void HideGunLine()
+        {
+            if (_gunLineObject != null)
+                _gunLineObject.SetActive(false);
+        }
+
         private static int? noInvisLayerMask;
         public static int NoInvisLayerMask()
         {
@@ -544,20 +587,7 @@ namespace Juul
 
                 lr = Vector3.Lerp(lr, (handPos + spherePos) / 2f, Time.deltaTime * 6f);
 
-                GameObject gameObject = new GameObject("Line");
-                LineRenderer lineRenderer = gameObject.AddComponent<LineRenderer>();
-                lineRenderer.startWidth = GunLineWidth;
-                lineRenderer.endWidth = GunLineWidth;
-                lineRenderer.startColor = LineColor;
-                lineRenderer.endColor = LineColor;
-                lineRenderer.useWorldSpace = true;
-                lineRenderer.material = new Material(Shader.Find("GorillaTag/UberShader"));
-                Renderer rend = lineRenderer.GetComponent<Renderer>();
-                rend.material = lineRenderer.material;
-                lineRenderer.material.color = LineColor;
-
-                gameObject.AddComponent<GunLib>().StartCoroutine(StartCurvyLineRenderer(lineRenderer, handPos, spherePos, lr));
-                GameObject.Destroy(lineRenderer, Time.deltaTime);
+                UpdateGunLine(handPos, spherePos, lr);
 
                 if (ControllerInputPoller.instance.rightControllerIndexFloat > 0.5f)
                 {
@@ -589,11 +619,15 @@ namespace Juul
                     }
                 }
             }
-            else if (spherepointer != null)
+            else
             {
-                LineLib.DestroySphere(spherepointer);
-                spherepointer = null;
-                LockedPlayer = null;
+                HideGunLine();
+                if (spherepointer != null)
+                {
+                    LineLib.DestroySphere(spherepointer);
+                    spherepointer = null;
+                    LockedPlayer = null;
+                }
             }
         }
 
@@ -622,20 +656,7 @@ namespace Juul
 
                 lr = Vector3.Lerp(lr, (handPos + spherePos) / 2f, Time.deltaTime * 6f);
 
-                GameObject gameObject = new GameObject("Line");
-                LineRenderer lineRenderer = gameObject.AddComponent<LineRenderer>();
-                lineRenderer.startWidth = GunLineWidth;
-                lineRenderer.endWidth = GunLineWidth;
-                lineRenderer.startColor = LineColor;
-                lineRenderer.endColor = LineColor;
-                lineRenderer.useWorldSpace = true;
-                lineRenderer.material = new Material(Shader.Find("GorillaTag/UberShader"));
-                Renderer rend = lineRenderer.GetComponent<Renderer>();
-                rend.material = lineRenderer.material;
-                lineRenderer.material.color = LineColor;
-
-                gameObject.AddComponent<GunLib>().StartCoroutine(StartCurvyLineRenderer(lineRenderer, handPos, spherePos, lr));
-                GameObject.Destroy(lineRenderer, Time.deltaTime);
+                UpdateGunLine(handPos, spherePos, lr);
 
                 if (ControllerInputPoller.instance.leftControllerIndexFloat > 0.5f)
                 {
@@ -663,11 +684,15 @@ namespace Juul
                     return;
                 }
             }
-            else if (spherepointer != null)
+            else
             {
-                LineLib.DestroySphere(spherepointer);
-                spherepointer = null;
-                LockedPlayer = null;
+                HideGunLine();
+                if (spherepointer != null)
+                {
+                    LineLib.DestroySphere(spherepointer);
+                    spherepointer = null;
+                    LockedPlayer = null;
+                }
             }
         }
 
@@ -700,20 +725,7 @@ namespace Juul
 
                 lr = Vector3.Lerp(lr, (handPos + spherePos) / 2f, Time.deltaTime * 6f);
 
-                GameObject gameObject = new GameObject("Line");
-                LineRenderer lineRenderer = gameObject.AddComponent<LineRenderer>();
-                lineRenderer.startWidth = GunLineWidth;
-                lineRenderer.endWidth = GunLineWidth;
-                lineRenderer.startColor = LineColor;
-                lineRenderer.endColor = LineColor;
-                lineRenderer.useWorldSpace = true;
-                lineRenderer.material = new Material(Shader.Find("GorillaTag/UberShader"));
-                Renderer rend = lineRenderer.GetComponent<Renderer>();
-                rend.material = lineRenderer.material;
-                lineRenderer.material.color = LineColor;
-
-                gameObject.AddComponent<GunLib>().StartCoroutine(StartCurvyLineRenderer(lineRenderer, handPos, spherePos, lr));
-                GameObject.Destroy(lineRenderer, Time.deltaTime);
+                UpdateGunLine(handPos, spherePos, lr);
 
                 if (Mouse.current.leftButton.isPressed)
                 {
@@ -745,11 +757,15 @@ namespace Juul
                     }
                 }
             }
-            else if (spherepointer != null)
+            else
             {
-                LineLib.DestroySphere(spherepointer);
-                spherepointer = null;
-                LockedPlayer = null;
+                HideGunLine();
+                if (spherepointer != null)
+                {
+                    LineLib.DestroySphere(spherepointer);
+                    spherepointer = null;
+                    LockedPlayer = null;
+                }
             }
         }
 

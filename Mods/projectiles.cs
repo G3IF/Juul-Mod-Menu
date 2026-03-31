@@ -1,4 +1,4 @@
-﻿using BepInEx;
+using BepInEx;
 using ExitGames.Client.Photon;
 using Fusion;
 using GorillaExtensions;
@@ -38,11 +38,6 @@ namespace Juul
 {
     public class Projectiles
     {
-
-
-
-
-
         public static void DelayChangeUp()
         {
             count++;
@@ -103,7 +98,7 @@ namespace Juul
                 Projdelay = 0.080f;
             }
         }
-        
+
         public static float ProjectileDelay;
         public static int count = 0;
         public static bool ProjCreated = false;
@@ -133,20 +128,20 @@ namespace Juul
                 ProjectileDelay = Time.time + Projdelay;
 
                 PhotonNetwork.RaiseEvent(176, new object[]
-                  {
-                    createproj.changeSizeEvent._eventId,
-                    size
-                  }, new RaiseEventOptions()
-                  {
-                    Receivers = ReceiverGroup.All,
-                  }, SendOptions.SendUnreliable);
+              {
+    createproj.changeSizeEvent._eventId,
+    size
+              }, new RaiseEventOptions()
+              {
+                  Receivers = ReceiverGroup.All,
+              }, SendOptions.SendUnreliable);
 
                 PhotonNetwork.RaiseEvent(176, new object[]
                 {
-                    createproj.snowballThrowEvent._eventId,
-                    pos,
-                    vel,
-                    ProjIncrment(pos, vel, size)
+    createproj.snowballThrowEvent._eventId,
+    pos,
+    vel,
+    ProjIncrment(pos, vel, size)
                 }, new RaiseEventOptions()
                 {
                     Receivers = ReceiverGroup.All,

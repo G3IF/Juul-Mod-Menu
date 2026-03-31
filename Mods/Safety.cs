@@ -1,4 +1,4 @@
-﻿using ExitGames.Client.Photon;
+using ExitGames.Client.Photon;
 using GorillaNetworking;
 using HarmonyLib;
 using Photon.Pun;
@@ -107,7 +107,6 @@ namespace Juul
                         PhotonNetwork.RemoveRPCs(PhotonNetwork.LocalPlayer);
                         PhotonNetwork.OpCleanActorRpcBuffer(PhotonNetwork.LocalPlayer.ActorNumber);
                         PhotonNetwork.OpCleanRpcBuffer(GorillaTagger.Instance.myVRRig.GetView);
-                        MonkeAgent.instance.OnPlayerLeftRoom(PhotonNetwork.LocalPlayer);
                         PhotonNetwork.NetworkingClient.LoadBalancingPeer.SendOutgoingCommands();
                         Traverse yeah = Traverse.Create(typeof(PhotonNetwork));
                         yeah.Property("ResentReliableCommands").SetValue(0);
@@ -726,16 +725,6 @@ namespace Juul
             }
             catch { }
         }
-
-
-
-
-
-
-
-
-
-
 
     }
 }

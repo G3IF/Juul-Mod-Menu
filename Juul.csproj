@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyName>juul</AssemblyName>
     <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
@@ -15,10 +15,7 @@
     <None Remove="Resources\**" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Assets\Resources\Select.mp3" />
-    <EmbeddedResource Include="Assets\Resources\Home.mp3" />
-    <EmbeddedResource Include="Assets\Resources\Loaded.mp3" />
-	<EmbeddedResource Include="Assets\Resources\Juul.png" />
+    <EmbeddedResource Include="Assets\Resources\*" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Classes\ColorManager.cs" />

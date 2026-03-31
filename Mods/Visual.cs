@@ -1,4 +1,4 @@
-﻿using ExitGames.Client.Photon;
+using ExitGames.Client.Photon;
 using GorillaLocomotion;
 using GorillaNetworking;
 using HarmonyLib;
@@ -43,7 +43,11 @@ namespace Juul
         private static Dictionary<VRRig, LineLib.Line[]> rigLineCache = new Dictionary<VRRig, LineLib.Line[]>();
         private static Dictionary<VRRig, LineLib.Line> tracerLineCache = new Dictionary<VRRig, LineLib.Line>();
         private static Dictionary<VRRig, LineLib.Line[]> box2DLineCache = new Dictionary<VRRig, LineLib.Line[]>();
+        private static Dictionary<VRRig, LineLib.Line> box2DV2LineCache = new Dictionary<VRRig, LineLib.Line>();
+        private static Dictionary<VRRig, LineLib.Line[]> box2DCornerLineCache = new Dictionary<VRRig, LineLib.Line[]>();
         private static Dictionary<VRRig, LineLib.Line[]> box3DLineCache = new Dictionary<VRRig, LineLib.Line[]>();
+        private static Dictionary<VRRig, LineLib.Line[]> box3DV2LineCache = new Dictionary<VRRig, LineLib.Line[]>();
+
         private static Dictionary<VRRig, Canvas> playernamecache = new Dictionary<VRRig, Canvas>();
         private static Dictionary<VRRig, TextMeshPro> playernametextcache = new Dictionary<VRRig, TextMeshPro>();
         private static Dictionary<VRRig, Material> originalMaterials = new Dictionary<VRRig, Material>();
@@ -53,7 +57,7 @@ namespace Juul
 
         private const float width = 0.015f;
         private const float tracerWidth = 0.01f;
-        private const float boxWidth = 0.012f;
+        private const float boxWidth = 0.018f;
         private static GameObject hudInstance;
         private static TextMesh textMesh;
         private static float hudTimer = 0f;
@@ -62,7 +66,7 @@ namespace Juul
         {
             if ( rig == null ) return;
 
-            rig.mainSkin.material.shader = Shader.Find("GUI/Text Shader");
+            rig.mainSkin.material.shader = Core.GuiTextShader;
             rig.mainSkin.material.color = color;    
         }
         public static void CleanUpPlayer()
@@ -70,19 +74,19 @@ namespace Juul
             if (PhotonNetwork.InRoom)
             {
                 VRRig player = Rigs.GetVRRigFromPlayer(PhotonNetwork.MasterClient);
-                player.mainSkin.material.shader = Shader.Find("GorillaTag/UberShader");
+                player.mainSkin.material.shader = Core.UberShader;
                 player.mainSkin.material.color = player.playerColor;
             }
         }
         public static void BoneESP()
         {
-            if (GorillaParent.instance == null || VRRigCache.ActiveRigs == null)
+            if (GorillaParent.instance == null || Core.CachedActiveRigs == null || Core.CachedActiveRigs.Length == 0)
                 return;
 
             if (GorillaTagger.Instance == null)
                 return;
 
-            VRRig[] currentRigs = VRRigCache.ActiveRigs.ToArray();
+            VRRig[] currentRigs = Core.CachedActiveRigs;
             HashSet<VRRig> activeRigs = new HashSet<VRRig>();
 
             foreach (VRRig rig in currentRigs)
@@ -131,7 +135,9 @@ namespace Juul
 
                     if (boneA != null && boneB != null)
                     {
-                        LineLib.Line boneLine = LineLib.CreateLine(boneA.position, boneB.position, width, Core.BaseColor);
+                        float dist = Core.CachedMainCamera != null ? Vector3.Distance(Core.CachedMainCamera.transform.position, boneA.position) : 1f;
+                        float scaledWidth = width * Mathf.Clamp(dist * 0.15f, 0.5f, 2.0f);
+                        LineLib.Line boneLine = LineLib.CreateLine(boneA.position, boneB.position, scaledWidth, Core.BaseColor);
                         lines[i / 2] = boneLine;
                     }
                 }
@@ -175,6 +181,8 @@ namespace Juul
                     {
                         lines[lineIndex].UpdatePosition(boneA.position, boneB.position);
                         lines[lineIndex].UpdateColor(Core.BaseColor);
+                        float dist = Core.CachedMainCamera != null ? Vector3.Distance(Core.CachedMainCamera.transform.position, boneA.position) : 1f;
+                        lines[lineIndex].UpdateWidth(width * Mathf.Clamp(dist * 0.15f, 0.5f, 2.0f));
                         lines[lineIndex].SetActive(true);
                     }
                 }
@@ -234,7 +242,7 @@ namespace Juul
 
         public static void Tracers()
         {
-            if (GorillaParent.instance == null || VRRigCache.ActiveRigs == null)
+            if (GorillaParent.instance == null || Core.CachedActiveRigs == null || Core.CachedActiveRigs.Length == 0)
                 return;
 
             if (GorillaTagger.Instance == null || GorillaTagger.Instance.offlineVRRig == null)
@@ -246,7 +254,7 @@ namespace Juul
                 return;
 
             Vector3 handPosition = localRig.rightHandTransform.position;
-            VRRig[] currentRigs = VRRigCache.ActiveRigs.ToArray();
+            VRRig[] currentRigs = Core.CachedActiveRigs;
             HashSet<VRRig> activeRigs = new HashSet<VRRig>();
 
             foreach (VRRig rig in currentRigs)
@@ -264,7 +272,9 @@ namespace Juul
                 {
                     try
                     {
-                        LineLib.Line tracerLine = LineLib.CreateLine(handPosition, headPosition, tracerWidth, Core.BaseColor);
+                        float dist = Core.CachedMainCamera != null ? Vector3.Distance(Core.CachedMainCamera.transform.position, headPosition) : 1f;
+                        float scaledWidth = tracerWidth * Mathf.Clamp(dist * 0.15f, 0.5f, 2.0f);
+                        LineLib.Line tracerLine = LineLib.CreateLine(handPosition, headPosition, scaledWidth, Core.BaseColor);
                         tracerLineCache[rig] = tracerLine;
                     }
                     catch (System.Exception e)
@@ -281,6 +291,8 @@ namespace Juul
                         {
                             tracerLine.UpdatePosition(handPosition, headPosition);
                             tracerLine.UpdateColor(Core.BaseColor);
+                            float dist = Core.CachedMainCamera != null ? Vector3.Distance(Core.CachedMainCamera.transform.position, headPosition) : 1f;
+                            tracerLine.UpdateWidth(tracerWidth * Mathf.Clamp(dist * 0.15f, 0.5f, 2.0f));
                             tracerLine.SetActive(true);
                         }
                     }
@@ -330,7 +342,7 @@ namespace Juul
 
         public static void Box2DESP()
         {
-            if (GorillaParent.instance == null || VRRigCache.ActiveRigs == null)
+            if (GorillaParent.instance == null || Core.CachedActiveRigs == null || Core.CachedActiveRigs.Length == 0)
                 return;
 
             if (GorillaTagger.Instance == null || GorillaTagger.Instance.offlineVRRig == null)
@@ -340,11 +352,11 @@ namespace Juul
             if (localRig.head == null || localRig.head.rigTarget == null)
                 return;
 
-            Camera mainCamera = Camera.main;
+            Camera mainCamera = Core.CachedMainCamera;
             if (mainCamera == null)
                 return;
 
-            VRRig[] currentRigs = VRRigCache.ActiveRigs.ToArray();
+            VRRig[] currentRigs = Core.CachedActiveRigs;
             HashSet<VRRig> activeRigs = new HashSet<VRRig>();
 
             foreach (VRRig rig in currentRigs)
@@ -352,10 +364,17 @@ namespace Juul
                 if (rig == null || rig == localRig)
                     continue;
 
-                if (rig.head == null || rig.head.rigTarget == null)
-                    continue;
-
                 activeRigs.Add(rig);
+
+                if (rig.head == null || rig.head.rigTarget == null)
+                {
+                    if (box2DLineCache.ContainsKey(rig))
+                    {
+                        foreach (var line in box2DLineCache[rig])
+                            if (line != null) line.SetActive(false);
+                    }
+                    continue;
+                }
 
                 if (!box2DLineCache.ContainsKey(rig))
                 {
@@ -375,11 +394,13 @@ namespace Juul
             LineLib.Line[] lines = new LineLib.Line[4];
 
             Vector3[] corners = Get2DBoxCorners(rig, cam);
+            float dist = Vector3.Distance(cam.transform.position, rig.head.rigTarget.position);
+            float scaledWidth = boxWidth * Mathf.Clamp(dist * 0.15f, 0.5f, 2.0f);
 
-            lines[0] = LineLib.CreateLine(corners[0], corners[1], boxWidth, Core.BaseColor);
-            lines[1] = LineLib.CreateLine(corners[1], corners[2], boxWidth, Core.BaseColor);
-            lines[2] = LineLib.CreateLine(corners[2], corners[3], boxWidth, Core.BaseColor);
-            lines[3] = LineLib.CreateLine(corners[3], corners[0], boxWidth, Core.BaseColor);
+            lines[0] = LineLib.CreateLine(corners[0], corners[1], scaledWidth, Core.BaseColor);
+            lines[1] = LineLib.CreateLine(corners[1], corners[2], scaledWidth, Core.BaseColor);
+            lines[2] = LineLib.CreateLine(corners[2], corners[3], scaledWidth, Core.BaseColor);
+            lines[3] = LineLib.CreateLine(corners[3], corners[0], scaledWidth, Core.BaseColor);
 
             box2DLineCache[rig] = lines;
         }
@@ -391,9 +412,30 @@ namespace Juul
 
             LineLib.Line[] lines = box2DLineCache[rig];
             if (lines == null || lines.Length != 4)
+            {
+                box2DLineCache.Remove(rig);
+                Create2DBoxForRig(rig, cam);
                 return;
+            }
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                if (lines[i] == null || lines[i].gameObject == null || lines[i].lineRenderer == null)
+                {
+                    foreach (var l in lines)
+                    {
+                        if (l != null && l.gameObject != null)
+                            LineLib.DeleteLine(l);
+                    }
+                    box2DLineCache.Remove(rig);
+                    Create2DBoxForRig(rig, cam);
+                    return;
+                }
+            }
 
             Vector3[] corners = Get2DBoxCorners(rig, cam);
+            float dist = Vector3.Distance(cam.transform.position, rig.head.rigTarget.position);
+            float scaledWidth = boxWidth * Mathf.Clamp(dist * 0.15f, 0.5f, 2.0f);
 
             lines[0].UpdatePosition(corners[0], corners[1]);
             lines[1].UpdatePosition(corners[1], corners[2]);
@@ -403,6 +445,7 @@ namespace Juul
             foreach (LineLib.Line line in lines)
             {
                 line.UpdateColor(Core.BaseColor);
+                line.UpdateWidth(scaledWidth);
                 line.SetActive(true);
             }
         }
@@ -415,8 +458,13 @@ namespace Juul
             float height = 1.2f;
             float width = 0.6f;
 
-            Vector3 camRight = cam.transform.right;
-            Vector3 camUp = cam.transform.up;
+            Vector3 camForward = cam.transform.position - center;
+            camForward.y = 0;
+            camForward.Normalize();
+            if (camForward.sqrMagnitude < 0.001f) camForward = Vector3.forward;
+
+            Vector3 camRight = Vector3.Cross(Vector3.up, camForward).normalized;
+            Vector3 camUp = Vector3.up;
 
             Vector3[] corners = new Vector3[4];
             corners[0] = center + camUp * (height / 2) - camRight * (width / 2);
@@ -471,13 +519,13 @@ namespace Juul
 
         public static void Box3DESP()
         {
-            if (GorillaParent.instance == null || VRRigCache.ActiveRigs == null)
+            if (GorillaParent.instance == null || Core.CachedActiveRigs == null || Core.CachedActiveRigs.Length == 0)
                 return;
 
             if (GorillaTagger.Instance == null)
                 return;
 
-            VRRig[] currentRigs = VRRigCache.ActiveRigs.ToArray();
+            VRRig[] currentRigs = Core.CachedActiveRigs;
             HashSet<VRRig> activeRigs = new HashSet<VRRig>();
 
             foreach (VRRig rig in currentRigs)
@@ -485,10 +533,17 @@ namespace Juul
                 if (rig == null || rig == GorillaTagger.Instance.offlineVRRig)
                     continue;
 
-                if (rig.head == null || rig.head.rigTarget == null)
-                    continue;
-
                 activeRigs.Add(rig);
+
+                if (rig.head == null || rig.head.rigTarget == null)
+                {
+                    if (box3DLineCache.ContainsKey(rig))
+                    {
+                        foreach (var line in box3DLineCache[rig])
+                            if (line != null) line.SetActive(false);
+                    }
+                    continue;
+                }
 
                 if (!box3DLineCache.ContainsKey(rig))
                 {
@@ -508,21 +563,23 @@ namespace Juul
             LineLib.Line[] lines = new LineLib.Line[12];
 
             Vector3[] corners = Get3DBoxCorners(rig);
+            float dist = Core.CachedMainCamera != null ? Vector3.Distance(Core.CachedMainCamera.transform.position, rig.head.rigTarget.position) : 1f;
+            float scaledWidth = boxWidth * Mathf.Clamp(dist * 0.15f, 0.5f, 2.0f);
 
-            lines[0] = LineLib.CreateLine(corners[0], corners[1], boxWidth, Core.BaseColor);
-            lines[1] = LineLib.CreateLine(corners[1], corners[2], boxWidth, Core.BaseColor);
-            lines[2] = LineLib.CreateLine(corners[2], corners[3], boxWidth, Core.BaseColor);
-            lines[3] = LineLib.CreateLine(corners[3], corners[0], boxWidth, Core.BaseColor);
+            lines[0] = LineLib.CreateLine(corners[0], corners[1], scaledWidth, Core.BaseColor);
+            lines[1] = LineLib.CreateLine(corners[1], corners[2], scaledWidth, Core.BaseColor);
+            lines[2] = LineLib.CreateLine(corners[2], corners[3], scaledWidth, Core.BaseColor);
+            lines[3] = LineLib.CreateLine(corners[3], corners[0], scaledWidth, Core.BaseColor);
 
-            lines[4] = LineLib.CreateLine(corners[4], corners[5], boxWidth, Core.BaseColor);
-            lines[5] = LineLib.CreateLine(corners[5], corners[6], boxWidth, Core.BaseColor);
-            lines[6] = LineLib.CreateLine(corners[6], corners[7], boxWidth, Core.BaseColor);
-            lines[7] = LineLib.CreateLine(corners[7], corners[4], boxWidth, Core.BaseColor);
+            lines[4] = LineLib.CreateLine(corners[4], corners[5], scaledWidth, Core.BaseColor);
+            lines[5] = LineLib.CreateLine(corners[5], corners[6], scaledWidth, Core.BaseColor);
+            lines[6] = LineLib.CreateLine(corners[6], corners[7], scaledWidth, Core.BaseColor);
+            lines[7] = LineLib.CreateLine(corners[7], corners[4], scaledWidth, Core.BaseColor);
 
-            lines[8] = LineLib.CreateLine(corners[0], corners[4], boxWidth, Core.BaseColor);
-            lines[9] = LineLib.CreateLine(corners[1], corners[5], boxWidth, Core.BaseColor);
-            lines[10] = LineLib.CreateLine(corners[2], corners[6], boxWidth, Core.BaseColor);
-            lines[11] = LineLib.CreateLine(corners[3], corners[7], boxWidth, Core.BaseColor);
+            lines[8] = LineLib.CreateLine(corners[0], corners[4], scaledWidth, Core.BaseColor);
+            lines[9] = LineLib.CreateLine(corners[1], corners[5], scaledWidth, Core.BaseColor);
+            lines[10] = LineLib.CreateLine(corners[2], corners[6], scaledWidth, Core.BaseColor);
+            lines[11] = LineLib.CreateLine(corners[3], corners[7], scaledWidth, Core.BaseColor);
 
             box3DLineCache[rig] = lines;
         }
@@ -534,9 +591,30 @@ namespace Juul
 
             LineLib.Line[] lines = box3DLineCache[rig];
             if (lines == null || lines.Length != 12)
+            {
+                box3DLineCache.Remove(rig);
+                Create3DBoxForRig(rig);
                 return;
+            }
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                if (lines[i] == null || lines[i].gameObject == null || lines[i].lineRenderer == null)
+                {
+                    foreach (var l in lines)
+                    {
+                        if (l != null && l.gameObject != null)
+                            LineLib.DeleteLine(l);
+                    }
+                    box3DLineCache.Remove(rig);
+                    Create3DBoxForRig(rig);
+                    return;
+                }
+            }
 
             Vector3[] corners = Get3DBoxCorners(rig);
+            float dist = Core.CachedMainCamera != null ? Vector3.Distance(Core.CachedMainCamera.transform.position, rig.head.rigTarget.position) : 1f;
+            float scaledWidth = boxWidth * Mathf.Clamp(dist * 0.15f, 0.5f, 2.0f);
 
             lines[0].UpdatePosition(corners[0], corners[1]);
             lines[1].UpdatePosition(corners[1], corners[2]);
@@ -556,6 +634,7 @@ namespace Juul
             foreach (LineLib.Line line in lines)
             {
                 line.UpdateColor(Core.BaseColor);
+                line.UpdateWidth(scaledWidth);
                 line.SetActive(true);
             }
         }
@@ -565,27 +644,29 @@ namespace Juul
             Vector3 headPos = rig.head.rigTarget.position;
             Vector3 center = headPos;
 
-            Quaternion rotation = rig.head.rigTarget.rotation;
+            float height = 1.25f;
+            float boxHorizWidth = 0.65f;
+            float boxDepth = 0.55f;
 
-            float height = 1.2f;
-            float width = 0.6f;
-            float depth = 0.4f;
+            Vector3 forward = rig.head.rigTarget.forward;
+            forward.y = 0;
+            forward.Normalize();
+            if (forward.sqrMagnitude < 0.001f) forward = Vector3.forward;
 
-            Vector3 forward = rotation * Vector3.forward;
-            Vector3 right = rotation * Vector3.right;
+            Vector3 right = Vector3.Cross(Vector3.up, forward).normalized;
             Vector3 up = Vector3.up;
 
             Vector3[] corners = new Vector3[8];
 
-            corners[0] = center + up * (height / 2) - right * (width / 2) + forward * (depth / 2);
-            corners[1] = center + up * (height / 2) + right * (width / 2) + forward * (depth / 2);
-            corners[2] = center + up * (height / 2) + right * (width / 2) - forward * (depth / 2);
-            corners[3] = center + up * (height / 2) - right * (width / 2) - forward * (depth / 2);
+            corners[0] = center + up * (height / 2) - right * (boxHorizWidth / 2) + forward * (boxDepth / 2);
+            corners[1] = center + up * (height / 2) + right * (boxHorizWidth / 2) + forward * (boxDepth / 2);
+            corners[2] = center + up * (height / 2) + right * (boxHorizWidth / 2) - forward * (boxDepth / 2);
+            corners[3] = center + up * (height / 2) - right * (boxHorizWidth / 2) - forward * (boxDepth / 2);
 
-            corners[4] = center - up * (height / 2) - right * (width / 2) + forward * (depth / 2);
-            corners[5] = center - up * (height / 2) + right * (width / 2) + forward * (depth / 2);
-            corners[6] = center - up * (height / 2) + right * (width / 2) - forward * (depth / 2);
-            corners[7] = center - up * (height / 2) - right * (width / 2) - forward * (depth / 2);
+            corners[4] = center - up * (height / 2) - right * (boxHorizWidth / 2) + forward * (boxDepth / 2);
+            corners[5] = center - up * (height / 2) + right * (boxHorizWidth / 2) + forward * (boxDepth / 2);
+            corners[6] = center - up * (height / 2) + right * (boxHorizWidth / 2) - forward * (boxDepth / 2);
+            corners[7] = center - up * (height / 2) - right * (boxHorizWidth / 2) - forward * (boxDepth / 2);
 
             return corners;
         }
@@ -634,13 +715,13 @@ namespace Juul
 
         public static void Chams()
         {
-            if (GorillaParent.instance == null || VRRigCache.ActiveRigs == null)
+            if (GorillaParent.instance == null || Core.CachedActiveRigs == null || Core.CachedActiveRigs.Length == 0)
                 return;
 
             if (GorillaTagger.Instance == null)
                 return;
 
-            VRRig[] currentRigs = VRRigCache.ActiveRigs.ToArray();
+            VRRig[] currentRigs = Core.CachedActiveRigs;
 
             foreach (VRRig rig in currentRigs)
             {
@@ -656,7 +737,7 @@ namespace Juul
                     originalColors[rig] = rig.mainSkin.material.color;
                 }
 
-                Shader chamShader = Shader.Find("GUI/Text Shader");
+                Shader chamShader = Core.GuiTextShader;
                 if (chamShader != null)
                 {
                     rig.mainSkin.material.shader = chamShader;
@@ -673,7 +754,7 @@ namespace Juul
                 if (rig != null && rig.mainSkin != null)
                 {
                     Renderer rigRenderer = rig.mainSkin.GetComponent<Renderer>();
-                    rigRenderer.material.shader = Shader.Find("GorillaTag/UberShader");
+                    rigRenderer.material.shader = Core.UberShader;
                     rigRenderer.material.color = rig.playerColor;
                 }
             }
@@ -683,13 +764,13 @@ namespace Juul
 
         public static void PlayerNameESP()
         {
-            if (GorillaParent.instance == null || VRRigCache.ActiveRigs == null)
+            if (GorillaParent.instance == null || Core.CachedActiveRigs == null || Core.CachedActiveRigs.Length == 0)
                 return;
 
             if (GorillaTagger.Instance == null)
                 return;
 
-            VRRig[] currentRigs = VRRigCache.ActiveRigs.ToArray();
+            VRRig[] currentRigs = Core.CachedActiveRigs;
             HashSet<VRRig> activeRigs = new HashSet<VRRig>();
 
             foreach (VRRig rig in currentRigs)
@@ -742,7 +823,7 @@ namespace Juul
             text.horizontalOverflow = HorizontalWrapMode.Overflow;
             text.verticalOverflow = VerticalWrapMode.Overflow;
 
-            Material textMaterial = new Material(Shader.Find("GUI/Text Shader"));
+            Material textMaterial = new Material(Core.GuiTextShader);
             textMaterial.color = Core.BaseColor;
             text.material = textMaterial;
 
@@ -784,7 +865,16 @@ namespace Juul
             if (canvas == null)
                 return;
 
-            UnityEngine.UI.Text text = canvas.GetComponentInChildren<UnityEngine.UI.Text>();
+            UnityEngine.UI.Text text;
+            if (!playernametextcache.TryGetValue(rig, out TextMeshPro _))
+            {
+                text = canvas.GetComponentInChildren<UnityEngine.UI.Text>();
+                if (text == null) return;
+            }
+            else
+            {
+                text = canvas.GetComponentInChildren<UnityEngine.UI.Text>();
+            }
 
             if (text == null)
                 return;
@@ -823,7 +913,7 @@ namespace Juul
                 text.material.color = Core.BaseColor;
             }
 
-            Camera mainCamera = Camera.main;
+            Camera mainCamera = Core.CachedMainCamera;
             if (mainCamera != null)
             {
                 canvas.transform.LookAt(canvas.transform.position + mainCamera.transform.rotation * Vector3.forward, mainCamera.transform.rotation * Vector3.up);
@@ -870,50 +960,7 @@ namespace Juul
             if (hudInstance == null)
             {
                 hudInstance = new GameObject("Juul_Info");
-                if (Camera.main != null)
-                {
-                    hudInstance.transform.SetParent(Camera.main.transform, false);
-                }
-
-                hudInstance.transform.localPosition = new Vector3(0.15f, 0.25f, 1.0f);
-                hudInstance.transform.localRotation = Quaternion.identity;
-                hudInstance.transform.localScale = new Vector3(0.002f, 0.002f, 0.002f);
-
-                textMesh = hudInstance.AddComponent<TextMesh>();
-                textMesh.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-                textMesh.GetComponent<MeshRenderer>().material = textMesh.font.material;
-
-                textMesh.fontSize = 500;
-                textMesh.characterSize = 0.5f;
-
-                textMesh.anchor = TextAnchor.UpperLeft;
-                textMesh.color = Core.BaseColor;
-            }
-
-            float frameFPS = 1.0f / Time.unscaledDeltaTime;
-            currentFPS = (int)Mathf.Lerp(currentFPS, frameFPS, Time.unscaledDeltaTime * 10f);
-
-            hudTimer += Time.deltaTime;
-            if (hudTimer > 0.1f)
-            {
-                hudTimer = 0f;
-
-                var p = PhotonNetwork.LocalPlayer;
-                string name = p != null ? p.NickName : "Unknown";
-
-                bool inRoom = PhotonNetwork.InRoom;
-                bool isMaster = PhotonNetwork.IsMasterClient;
-                VRRig localRig = GorillaTagger.Instance.offlineVRRig;
-                bool isInfected = localRig != null && Infected(localRig);
-
-                textMesh.text =
-                    $"Name: {name}\n" +
-                    $"FPS: {currentFPS}\n" +
-                    $"In Lobby: {inRoom}\n" +
-                    $"Is Master Client: {isMaster}\n" +
-                    $"Is Tagged: {isInfected}";
-
-                textMesh.color = Core.BaseColor;
+                hudInstance.AddComponent<PlayerInfoBehavior>();
             }
         }
 
@@ -922,22 +969,19 @@ namespace Juul
             return p != null && p.mainSkin != null && p.mainSkin.material != null && (p.mainSkin.material.name.Contains("It") || p.mainSkin.material.name.Contains("fected"));
         }
 
-
         public static void MenuThemeRig()
         {
             Renderer rigRenderer = GorillaTagger.Instance.offlineVRRig.mainSkin.GetComponent<Renderer>();
-            rigRenderer.material.shader = Shader.Find("GUI/Text Shader");
+            rigRenderer.material.shader = Core.GuiTextShader;
             Color hollowColor = Core.BaseColor;
             hollowColor.a = 0.3f;
             rigRenderer.material.color = hollowColor;
         }
 
-
-
         public static void RigColorFix()
         {
             Renderer rigRenderer = GorillaTagger.Instance.offlineVRRig.mainSkin.GetComponent<Renderer>();
-            rigRenderer.material.shader = Shader.Find("GorillaTag/UberShader");
+            rigRenderer.material.shader = Core.UberShader;
             rigRenderer.material.color = GorillaTagger.Instance.offlineVRRig.playerColor;
         }
 
@@ -945,9 +989,201 @@ namespace Juul
         {
             if (hudInstance != null)
             {
-                Object.Destroy(hudInstance);
+                UnityEngine.Object.Destroy(hudInstance);
                 hudInstance = null;
-                textMesh = null;
+            }
+        }
+
+        public class PlayerInfoBehavior : MonoBehaviour
+        {
+            private TextMesh textMesh;
+            private GUIStyle pcStyle;
+            private int fps;
+            private float timer;
+            private string infoText = "";
+
+            private void Start()
+            {
+                textMesh = gameObject.AddComponent<TextMesh>();
+                textMesh.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+                textMesh.GetComponent<MeshRenderer>().material = textMesh.font.material;
+                textMesh.fontSize = 500;
+                textMesh.characterSize = 0.5f;
+                textMesh.anchor = TextAnchor.UpperLeft;
+
+                if (Camera.main != null)
+                {
+                    transform.SetParent(Camera.main.transform, false);
+                }
+                transform.localPosition = new Vector3(0.15f, 0.25f, 1.0f);
+                transform.localRotation = Quaternion.identity;
+                transform.localScale = new Vector3(0.002f, 0.002f, 0.002f);
+            }
+
+            private void Update()
+            {
+                bool isVR = UnityEngine.XR.XRSettings.isDeviceActive;
+                textMesh.GetComponent<MeshRenderer>().enabled = isVR;
+
+                float frameFPS = 1.0f / Time.unscaledDeltaTime;
+                fps = (int)Mathf.Lerp(fps, frameFPS, Time.unscaledDeltaTime * 10f);
+
+                timer += Time.deltaTime;
+                if (timer > 0.1f)
+                {
+                    timer = 0f;
+                    var p = PhotonNetwork.LocalPlayer;
+                    string name = p != null ? p.NickName : "Unknown";
+                    string roomPlayers = PhotonNetwork.InRoom ? PhotonNetwork.CurrentRoom.PlayerCount.ToString() : "0";
+                    bool inRoom = PhotonNetwork.InRoom;
+                    bool isMaster = PhotonNetwork.IsMasterClient;
+                    VRRig localRig = GorillaTagger.Instance.offlineVRRig;
+                    bool isInfected = localRig != null && Infected(localRig);
+
+                    infoText = 
+                        $"Name: {name}\n" +
+                        $"FPS: {fps}\n" +
+                        $"In Lobby: {inRoom}\n" +
+                        $"Room Players: {roomPlayers}\n" +
+                        $"Is Master Client: {isMaster}\n" +
+                        $"Is Tagged: {isInfected}";
+
+                    textMesh.text = infoText;
+                    textMesh.color = Core.BaseColor;
+                }
+            }
+
+            private void OnGUI()
+            {
+                if (Event.current.type != EventType.Repaint) return;
+                if (UnityEngine.XR.XRSettings.isDeviceActive) return;
+
+                if (pcStyle == null)
+                {
+                    pcStyle = new GUIStyle(GUI.skin.label);
+                    pcStyle.fontSize = 20;
+                    pcStyle.fontStyle = FontStyle.Normal;
+                    pcStyle.alignment = TextAnchor.UpperLeft;
+                }
+
+                float yOffset = 8f;
+                float xOffset = 8f;
+
+                pcStyle.normal.textColor = Color.black;
+                GUI.Label(new Rect(xOffset + 1f, yOffset + 1f, 400f, 200f), infoText, pcStyle);
+                pcStyle.normal.textColor = Core.BaseColor;
+                GUI.Label(new Rect(xOffset, yOffset, 400f, 200f), infoText, pcStyle);
+            }
+        }
+
+        private static GameObject arrayListInstance;
+
+        public static void EnableArrayList()
+        {
+            if (arrayListInstance == null)
+            {
+                arrayListInstance = new GameObject("ArrayList");
+                arrayListInstance.AddComponent<ArrayListBehavior>();
+            }
+        }
+
+        public static void DisableArrayList()
+        {
+            if (arrayListInstance != null)
+            {
+                Object.Destroy(arrayListInstance);
+                arrayListInstance = null;
+            }
+        }
+
+
+        public class ArrayListBehavior : MonoBehaviour
+        {
+            private GUIStyle textStyle;
+            private Texture2D bgTexture;
+            private Texture2D lineTexture;
+            private List<Button> enabledMods = new List<Button>();
+            private const float margin = 8f;
+            private const float gap = 3f;
+
+            private void OnGUI()
+            {
+                if (Event.current.type != EventType.Repaint) return;
+                if (textStyle == null)
+                {
+                    textStyle = new GUIStyle(GUI.skin.label);
+                    textStyle.fontSize = 20;
+                    textStyle.fontStyle = FontStyle.Normal;
+                    textStyle.alignment = TextAnchor.MiddleRight;
+                }
+                if (bgTexture == null)
+                {
+                    bgTexture = new Texture2D(1, 1);
+                    bgTexture.SetPixel(0, 0, new Color(0.05f, 0.05f, 0.05f, 0.85f));
+                    bgTexture.Apply();
+                }
+                if (lineTexture == null)
+                {
+                    lineTexture = new Texture2D(1, 1);
+                    lineTexture.SetPixel(0, 0, Color.white);
+                    lineTexture.Apply();
+                }
+                if (Buttons.Modules == null) return;
+                enabledMods.Clear();
+                foreach (var category in Buttons.Modules)
+                {
+                    if (category == Buttons.EnabledCategory) continue;
+                    if (category == PlayerMenu.GetPlayersCategory()) continue;
+                    foreach (var btn in category.Buttons)
+                    {
+                        if (btn != null && btn.Enabled && btn.Toggle && !btn.Incremental && !btn.Label)
+                        {
+                            if (btn.Name.Contains("Array List") || btn.Name.Contains("Watermark")) continue;
+                            enabledMods.Add(btn);
+                        }
+                    }
+                }
+                enabledMods.Sort((a, b) => b.Name.Length.CompareTo(a.Name.Length));
+                float screenWidth = Screen.width;
+                float yOffset = margin;
+                for (int i = 0; i < enabledMods.Count; i++)
+                {
+                    string text = enabledMods[i].Name;
+                    Vector2 size = textStyle.CalcSize(new GUIContent(text));
+                    float rectWidth = size.x + 14f;
+                    float rectHeight = size.y + 2f;
+                    float x = screenWidth - rectWidth - margin;
+                    float normalizedPos = (enabledMods.Count > 1) ? (float)i / (enabledMods.Count - 1) : 0f;
+                    Color modColor = GetSyncedGradientColor(normalizedPos);
+                    GUI.DrawTexture(new Rect(x, yOffset, rectWidth, rectHeight), bgTexture);
+                    Color oldColor = GUI.color;
+                    GUI.color = modColor;
+                    GUI.DrawTexture(new Rect(screenWidth - 3f - margin, yOffset, 3f, rectHeight), lineTexture);
+                    GUI.color = oldColor;
+                    textStyle.normal.textColor = Color.black;
+                    GUI.Label(new Rect(x, yOffset + 2f, rectWidth - 8f, rectHeight), text, textStyle);
+                    textStyle.normal.textColor = modColor;
+                    GUI.Label(new Rect(x - 1f, yOffset + 1f, rectWidth - 8f, rectHeight), text, textStyle);
+                    yOffset += rectHeight + gap;
+                }
+            }
+
+
+            private Color GetSyncedGradientColor(float normalizedPosition)
+            {
+                if (Themes.List == null || Core.ThemeValue < 0 || Core.ThemeValue >= Themes.List.Length)
+                    return Core.BaseColor;
+                Theme currentTheme = Themes.List[Core.ThemeValue];
+                if (currentTheme.Colors == null || currentTheme.Colors.Length == 0) return Core.BaseColor;
+                if (currentTheme.Colors.Length == 1) return currentTheme.Colors[0];
+                float totalRange = currentTheme.Colors.Length - 1;
+                float baseT = Mathf.PingPong(Time.time * currentTheme.Speed, totalRange);
+                float t = Mathf.PingPong(baseT + normalizedPosition * totalRange * 0.15f, totalRange);
+                int indexA = Mathf.FloorToInt(t);
+                int indexB = Mathf.Clamp(indexA + 1, 0, currentTheme.Colors.Length - 1);
+                float localT = t - indexA;
+                float easedT = localT < 0.5f ? 2f * localT * localT : 1f - Mathf.Pow(-2f * localT + 2f, 2f) / 2f;
+                return Color.Lerp(currentTheme.Colors[indexA], currentTheme.Colors[indexB], easedT);
             }
         }
         public static void OutcastAll()
@@ -1006,7 +1242,7 @@ namespace Juul
         }
         public static void InfectionTracers()
         {
-            if (GorillaParent.instance == null || VRRigCache.ActiveRigs == null)
+            if (GorillaParent.instance == null || Core.CachedActiveRigs == null || Core.CachedActiveRigs.Length == 0)
                 return;
 
             if (GorillaTagger.Instance == null || GorillaTagger.Instance.offlineVRRig == null)
@@ -1018,7 +1254,7 @@ namespace Juul
                 return;
 
             Vector3 handPosition = localRig.rightHandTransform.position;
-            VRRig[] currentRigs = VRRigCache.ActiveRigs.ToArray();
+            VRRig[] currentRigs = Core.CachedActiveRigs;
             HashSet<VRRig> activeRigs = new HashSet<VRRig>();
 
             foreach (VRRig rig in currentRigs)
@@ -1104,13 +1340,13 @@ namespace Juul
 
         public static void InfectionChams()
         {
-            if (GorillaParent.instance == null || VRRigCache.ActiveRigs == null)
+            if (GorillaParent.instance == null || Core.CachedActiveRigs == null || Core.CachedActiveRigs.Length == 0)
                 return;
 
             if (GorillaTagger.Instance == null)
                 return;
 
-            VRRig[] currentRigs = VRRigCache.ActiveRigs.ToArray();
+            VRRig[] currentRigs = Core.CachedActiveRigs;
 
             foreach (VRRig rig in currentRigs)
             {
@@ -1126,7 +1362,7 @@ namespace Juul
                     originalColors[rig] = rig.mainSkin.material.color;
                 }
 
-                Shader chamShader = Shader.Find("GUI/Text Shader");
+                Shader chamShader = Core.GuiTextShader;
                 if (chamShader != null)
                 {
                     rig.mainSkin.material.shader = chamShader;
@@ -1143,7 +1379,7 @@ namespace Juul
                 if (rig != null && rig.mainSkin != null)
                 {
                     Renderer rigRenderer = rig.mainSkin.GetComponent<Renderer>();
-                    rigRenderer.material.shader = Shader.Find("GorillaTag/UberShader");
+                    rigRenderer.material.shader = Core.UberShader;
                     rigRenderer.material.color = rig.playerColor;
                 }
             }
@@ -1152,13 +1388,13 @@ namespace Juul
         }
         public static void InfectionBoneESP()
         {
-            if (GorillaParent.instance == null || VRRigCache.ActiveRigs == null)
+            if (GorillaParent.instance == null || Core.CachedActiveRigs == null || Core.CachedActiveRigs.Length == 0)
                 return;
 
             if (GorillaTagger.Instance == null)
                 return;
 
-            VRRig[] currentRigs = VRRigCache.ActiveRigs.ToArray();
+            VRRig[] currentRigs = Core.CachedActiveRigs;
             HashSet<VRRig> activeRigs = new HashSet<VRRig>();
 
             foreach (VRRig rig in currentRigs)
@@ -1311,10 +1547,311 @@ namespace Juul
             rigLineCache.Clear();
         }
      
+        
 
+        
 
+        public static void Box2DCornerESP()
+        {
+            if (GorillaParent.instance == null || Core.CachedActiveRigs == null || Core.CachedActiveRigs.Length == 0) return;
+            if (GorillaTagger.Instance == null || GorillaTagger.Instance.offlineVRRig == null) return;
 
+            VRRig localRig = GorillaTagger.Instance.offlineVRRig;
+            Camera mainCamera = Core.CachedMainCamera;
+            if (mainCamera == null) return;
 
+            VRRig[] currentRigs = Core.CachedActiveRigs;
+            HashSet<VRRig> activeRigs = new HashSet<VRRig>();
+
+            foreach (VRRig rig in currentRigs)
+            {
+                if (rig == null || rig == localRig) continue;
+                activeRigs.Add(rig);
+
+                if (rig.head == null || rig.head.rigTarget == null)
+                {
+                    if (box2DCornerLineCache.ContainsKey(rig))
+                        foreach (var l in box2DCornerLineCache[rig]) if (l != null) l.SetActive(false);
+                    continue;
+                }
+
+                if (!box2DCornerLineCache.ContainsKey(rig))
+                    Create2DCornerBoxForRig(rig, mainCamera);
+                else
+                    Update2DCornerBoxForRig(rig, mainCamera);
+            }
+            CleanupDisconnected2DCornerBoxes(activeRigs);
+        }
+
+        private static Vector3[][] Get2DCornerLines(VRRig rig, Camera cam)
+        {
+            Vector3[] c = Get2DBoxCorners(rig, cam);
+            float hLen = (c[1] - c[0]).magnitude / 4f; 
+            float vLen = (c[0] - c[3]).magnitude / 4f; 
+
+            Vector3 right = (c[1] - c[0]).normalized;
+            Vector3 down = (c[3] - c[0]).normalized;
+            Vector3 up = -down;
+
+            Vector3[][] lines = new Vector3[8][];
+            int idx = 0;
+
+            lines[idx++] = new Vector3[] { c[0], c[0] + right * hLen };
+            lines[idx++] = new Vector3[] { c[0], c[0] + down * vLen };
+
+            lines[idx++] = new Vector3[] { c[1], c[1] - right * hLen };
+            lines[idx++] = new Vector3[] { c[1], c[1] + down * vLen };
+
+            lines[idx++] = new Vector3[] { c[2], c[2] - right * hLen };
+            lines[idx++] = new Vector3[] { c[2], c[2] + up * vLen };
+
+            lines[idx++] = new Vector3[] { c[3], c[3] + right * hLen };
+            lines[idx++] = new Vector3[] { c[3], c[3] + up * vLen };
+
+            return lines;
+        }
+
+        private static void Create2DCornerBoxForRig(VRRig rig, Camera cam)
+        {
+            Vector3[][] pointPairs = Get2DCornerLines(rig, cam);
+            LineLib.Line[] lines = new LineLib.Line[8];
+            float dist = Vector3.Distance(cam.transform.position, rig.head.rigTarget.position);
+            float scaledWidth = boxWidth * Mathf.Clamp(dist * 0.15f, 0.5f, 2.0f);
+
+            for (int i = 0; i < 8; i++)
+                lines[i] = LineLib.CreateLine(pointPairs[i][0], pointPairs[i][1], scaledWidth, Core.BaseColor);
+
+            box2DCornerLineCache[rig] = lines;
+        }
+
+        private static void Update2DCornerBoxForRig(VRRig rig, Camera cam)
+        {
+            if (!box2DCornerLineCache.ContainsKey(rig)) return;
+            LineLib.Line[] lines = box2DCornerLineCache[rig];
+            if (lines == null || lines.Length != 8)
+            {
+                box2DCornerLineCache.Remove(rig);
+                Create2DCornerBoxForRig(rig, cam);
+                return;
+            }
+
+            for (int i = 0; i < 8; i++)
+            {
+                if (lines[i] == null || lines[i].gameObject == null || lines[i].lineRenderer == null)
+                {
+                    foreach (var l in lines) if (l != null && l.gameObject != null) LineLib.DeleteLine(l);
+                    box2DCornerLineCache.Remove(rig);
+                    Create2DCornerBoxForRig(rig, cam);
+                    return;
+                }
+            }
+
+            Vector3[][] pointPairs = Get2DCornerLines(rig, cam);
+            float dist = Vector3.Distance(cam.transform.position, rig.head.rigTarget.position);
+            float scaledWidth = boxWidth * Mathf.Clamp(dist * 0.15f, 0.5f, 2.0f);
+
+            for (int i = 0; i < 8; i++)
+            {
+                lines[i].UpdatePosition(pointPairs[i][0], pointPairs[i][1]);
+                lines[i].UpdateWidth(scaledWidth);
+                lines[i].UpdateColor(Core.BaseColor);
+                lines[i].SetActive(true);
+            }
+        }
+
+        private static void CleanupDisconnected2DCornerBoxes(HashSet<VRRig> activeRigs)
+        {
+            List<VRRig> rigsToRemove = new List<VRRig>();
+            foreach (var kvp in box2DCornerLineCache)
+            {
+                if (!activeRigs.Contains(kvp.Key) || kvp.Key == null)
+                {
+                    if (kvp.Value != null)
+                        foreach (var l in kvp.Value) if (l != null) LineLib.DeleteLine(l);
+                    rigsToRemove.Add(kvp.Key);
+                }
+            }
+            foreach (var rig in rigsToRemove) box2DCornerLineCache.Remove(rig);
+        }
+
+        public static void CleanupBox2DCornerESP()
+        {
+            foreach (var kvp in box2DCornerLineCache)
+                if (kvp.Value != null)
+                    foreach (var l in kvp.Value) if (l != null) LineLib.DeleteLine(l);
+            box2DCornerLineCache.Clear();
+        }
+
+        public static void Box3DESPV2()
+        {
+            if (GorillaParent.instance == null || Core.CachedActiveRigs == null || Core.CachedActiveRigs.Length == 0) return;
+            if (GorillaTagger.Instance == null) return;
+
+            VRRig[] currentRigs = Core.CachedActiveRigs;
+            HashSet<VRRig> activeRigs = new HashSet<VRRig>();
+
+            foreach (VRRig rig in currentRigs)
+            {
+                if (rig == null || rig == GorillaTagger.Instance.offlineVRRig) continue;
+                activeRigs.Add(rig);
+
+                if (rig.head == null || rig.head.rigTarget == null)
+                {
+                    if (box3DV2LineCache.ContainsKey(rig))
+                    {
+                        foreach (var l in box3DV2LineCache[rig]) if (l != null) l.SetActive(false);
+                    }
+                    continue;
+                }
+
+                if (!box3DV2LineCache.ContainsKey(rig))
+                    Create3DV2BoxForRig(rig);
+                else
+                    Update3DV2BoxForRig(rig);
+            }
+            CleanupDisconnected3DV2Boxes(activeRigs);
+        }
+
+        private static Vector3[][] GetCornerBoxLines(VRRig rig)
+        {
+            Vector3 headPos = rig.head.rigTarget.position;
+            Vector3 center = headPos;
+
+            float h = 1.25f;
+            float w = 0.65f;
+            float d = 0.55f;
+            
+            float lineLenH = h / 4f;
+            float lineLenW = w / 4f;
+            float lineLenD = d / 4f;
+
+            Vector3 forward = rig.head.rigTarget.forward;
+            forward.y = 0;
+            forward.Normalize();
+            if (forward.sqrMagnitude < 0.001f) forward = Vector3.forward;
+
+            Vector3 right = Vector3.Cross(Vector3.up, forward).normalized;
+            Vector3 up = Vector3.up;
+
+            Vector3[] c = new Vector3[8];
+            c[0] = center + up * (h/2) - right * (w/2) + forward * (d/2);
+            c[1] = center + up * (h/2) + right * (w/2) + forward * (d/2);
+            c[2] = center + up * (h/2) + right * (w/2) - forward * (d/2);
+            c[3] = center + up * (h/2) - right * (w/2) - forward * (d/2);
+            c[4] = center - up * (h/2) - right * (w/2) + forward * (d/2);
+            c[5] = center - up * (h/2) + right * (w/2) + forward * (d/2);
+            c[6] = center - up * (h/2) + right * (w/2) - forward * (d/2);
+            c[7] = center - up * (h/2) - right * (w/2) - forward * (d/2);
+
+            Vector3[][] lines = new Vector3[24][];
+            int idx = 0;
+            
+            lines[idx++] = new Vector3[] { c[0], c[0] + right * lineLenW };
+            lines[idx++] = new Vector3[] { c[0], c[0] - forward * lineLenD };
+            lines[idx++] = new Vector3[] { c[0], c[0] - up * lineLenH };
+
+            lines[idx++] = new Vector3[] { c[1], c[1] - right * lineLenW };
+            lines[idx++] = new Vector3[] { c[1], c[1] - forward * lineLenD };
+            lines[idx++] = new Vector3[] { c[1], c[1] - up * lineLenH };
+
+            lines[idx++] = new Vector3[] { c[2], c[2] + forward * lineLenD };
+            lines[idx++] = new Vector3[] { c[2], c[2] - right * lineLenW };
+            lines[idx++] = new Vector3[] { c[2], c[2] - up * lineLenH };
+
+            lines[idx++] = new Vector3[] { c[3], c[3] + right * lineLenW };
+            lines[idx++] = new Vector3[] { c[3], c[3] + forward * lineLenD };
+            lines[idx++] = new Vector3[] { c[3], c[3] - up * lineLenH };
+
+            lines[idx++] = new Vector3[] { c[4], c[4] + right * lineLenW };
+            lines[idx++] = new Vector3[] { c[4], c[4] - forward * lineLenD };
+            lines[idx++] = new Vector3[] { c[4], c[4] + up * lineLenH };
+            
+            lines[idx++] = new Vector3[] { c[5], c[5] - right * lineLenW };
+            lines[idx++] = new Vector3[] { c[5], c[5] - forward * lineLenD };
+            lines[idx++] = new Vector3[] { c[5], c[5] + up * lineLenH };
+            
+            lines[idx++] = new Vector3[] { c[6], c[6] + forward * lineLenD };
+            lines[idx++] = new Vector3[] { c[6], c[6] - right * lineLenW };
+            lines[idx++] = new Vector3[] { c[6], c[6] + up * lineLenH };
+            
+            lines[idx++] = new Vector3[] { c[7], c[7] + right * lineLenW };
+            lines[idx++] = new Vector3[] { c[7], c[7] + forward * lineLenD };
+            lines[idx++] = new Vector3[] { c[7], c[7] + up * lineLenH };
+
+            return lines;
+        }
+
+        private static void Create3DV2BoxForRig(VRRig rig)
+        {
+            Vector3[][] pointPairs = GetCornerBoxLines(rig);
+            LineLib.Line[] lines = new LineLib.Line[24];
+            
+            float dist = Core.CachedMainCamera != null ? Vector3.Distance(Core.CachedMainCamera.transform.position, rig.head.rigTarget.position) : 1f;
+            float scaledWidth = boxWidth * Mathf.Clamp(dist * 0.15f, 0.5f, 2.0f);
+
+            for (int i = 0; i < 24; i++)
+                lines[i] = LineLib.CreateLine(pointPairs[i][0], pointPairs[i][1], scaledWidth, Core.BaseColor);
+                
+            box3DV2LineCache[rig] = lines;
+        }
+
+        private static void Update3DV2BoxForRig(VRRig rig)
+        {
+            if (!box3DV2LineCache.ContainsKey(rig)) return;
+            LineLib.Line[] lines = box3DV2LineCache[rig];
+            if (lines == null || lines.Length != 24)
+            {
+                box3DV2LineCache.Remove(rig);
+                Create3DV2BoxForRig(rig);
+                return;
+            }
+
+            for (int i = 0; i < 24; i++)
+            {
+                if (lines[i] == null || lines[i].gameObject == null || lines[i].lineRenderer == null)
+                {
+                    foreach (var l in lines) if (l != null && l.gameObject != null) LineLib.DeleteLine(l);
+                    box3DV2LineCache.Remove(rig);
+                    Create3DV2BoxForRig(rig);
+                    return;
+                }
+            }
+
+            Vector3[][] pointPairs = GetCornerBoxLines(rig);
+            float dist = Core.CachedMainCamera != null ? Vector3.Distance(Core.CachedMainCamera.transform.position, rig.head.rigTarget.position) : 1f;
+            float scaledWidth = boxWidth * Mathf.Clamp(dist * 0.15f, 0.5f, 2.0f);
+
+            for (int i = 0; i < 24; i++)
+            {
+                lines[i].UpdatePosition(pointPairs[i][0], pointPairs[i][1]);
+                lines[i].UpdateWidth(scaledWidth);
+                lines[i].UpdateColor(Core.BaseColor);
+                lines[i].SetActive(true);
+            }
+        }
+
+        private static void CleanupDisconnected3DV2Boxes(HashSet<VRRig> activeRigs)
+        {
+            List<VRRig> rigsToRemove = new List<VRRig>();
+            foreach (var kvp in box3DV2LineCache)
+            {
+                if (!activeRigs.Contains(kvp.Key) || kvp.Key == null)
+                {
+                    if (kvp.Value != null)
+                        foreach (var l in kvp.Value) if (l != null) LineLib.DeleteLine(l);
+                    rigsToRemove.Add(kvp.Key);
+                }
+            }
+            foreach (var rig in rigsToRemove) box3DV2LineCache.Remove(rig);
+        }
+
+        public static void CleanupBox3DESPV2()
+        {
+            foreach (var kvp in box3DV2LineCache)
+                if (kvp.Value != null)
+                    foreach (var l in kvp.Value) if (l != null) LineLib.DeleteLine(l);
+            box3DV2LineCache.Clear();
+        }
 
 
     }

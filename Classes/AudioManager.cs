@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -23,7 +23,7 @@ namespace Juul
                 Directory.CreateDirectory(tempDir);
         }
 
-        private static void EnsureInstance()
+        public static void EnsureInstance()
         {
             if (instance != null) return;
             var obj = new GameObject("AudioManager");

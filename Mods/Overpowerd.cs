@@ -51,10 +51,6 @@ namespace Juul
     internal class Overpowered
     {
         
-
-
-       
-
         public static void GetOwnerOfSIEntity()
         {
             try
@@ -143,8 +139,6 @@ namespace Juul
             child.ReturnToParent(2f);
         }
 
-
-
         private static void SendBarrelFixIDK(VRRig target, Vector3 velocity)
         {
             DeployableObject deployable = FindBarrel();
@@ -193,26 +187,6 @@ namespace Juul
                 SendBarrelFixIDK(GunLib.LockedPlayer, new Vector3(0, 9998.99f, 0));
             }, true);
         }
-
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
         public static void BuyBarrel()
         {
@@ -283,18 +257,6 @@ namespace Juul
             }
         }
 
-
-
-
-
-
-
-
-
-
-
-
-
         public static void DestroyAll()
         {
             if (PhotonNetwork.InRoom)
@@ -305,7 +267,7 @@ namespace Juul
                 }
             }
         }
-        public static void DestroyGun() // detceted?
+        public static void DestroyGun()
         {
             GunLib.StartPointerSystem(() =>
             {
@@ -483,7 +445,7 @@ namespace Juul
                 if (Time.time > delay)
                 {
                     delay = Time.time + 1f;
-                    for (int i = 0; i < 11; i++)
+                    for (int i = 0; i < 31; i++)
                     {
                         NetworkSystemRaiseEvent.RaiseEvent(51, Reportdata, netEventOptions, false);
                     }
@@ -491,11 +453,10 @@ namespace Juul
             }
         }
         public static void FreezeRoomV2()
-
         {
             MonkeAgent.instance.suspiciousPlayerId = "☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠";
             MonkeAgent.instance.suspiciousPlayerName = "☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠";
-            MonkeAgent  .instance.suspiciousReason = "☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠";
+            MonkeAgent.instance.suspiciousReason = "☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠☠";
 
             WebFlags flags = new WebFlags(255);
             NetEventOptions options = new NetEventOptions
@@ -523,7 +484,7 @@ namespace Juul
 
             if (Time.time > delay)
             {
-                delay = Time.time + 3f;
+                delay = Time.time + 1f;
                 for (int i = 0; i < 200; i++)
                 {
                     NetworkSystemRaiseEvent.RaiseEvent(8, data, options, false);
@@ -531,6 +492,7 @@ namespace Juul
                 Safety.AntiRPCKick();
             }
         }
+        
         public static void StutterGun()
         {
             GunLib.StartPointerSystem(() =>
@@ -751,8 +713,7 @@ namespace Juul
             delay = Time.time + 8.5f;
         }
 
-
-        public static void CrashPlayer(VRRig player) // not actual
+        public static void CrashPlayer(VRRig player)
         {
             if (Time.time <= delay) return;
             for (int i = 0; i < 1875; i++) PhotonNetwork.NetworkingClient.LoadBalancingPeer.OpRaiseEvent(3, new ExitGames.Client.Photon.Hashtable(), new RaiseEventOptions { TargetActors = new int[] { player.Creator.ActorNumber } }, SendOptions.SendUnreliable);
@@ -787,41 +748,12 @@ namespace Juul
             delay = Time.time + 5f;
         }
         
-        //idk if raise event 3 is detected, but it works, if its detected let me know
-
         public static Hashtable hashtable = new Hashtable();
         
         public static void FixModCheckers()
         {
             hashtable.Clear();
             PhotonNetwork.LocalPlayer.SetCustomProperties(hashtable, null, null);
-        }
-        public static void EnableSpyRoom()
-        {
-            if (!PhotonNetwork.IsConnected) return;
-            PhotonNetwork.NetworkingClient.LoadBalancingPeer.TransportProtocol = ConnectionProtocol.Tcp;
-            PhotonNetwork.NetworkingClient.LoadBalancingPeer.peerBase = new TPeer()
-            {
-                DoFraming = true,
-                photonPeer = PhotonNetwork.NetworkingClient.LoadBalancingPeer,
-                usedTransportProtocol = ConnectionProtocol.Tcp
-            };
-        }
-        public static void DisableSpyRoom()
-        {
-            if (!PhotonNetwork.IsConnected) return;
-            PhotonNetwork.NetworkingClient.LoadBalancingPeer.TransportProtocol = ConnectionProtocol.Udp;
-            PhotonNetwork.NetworkingClient.LoadBalancingPeer.peerBase = new EnetPeer
-            {
-                photonPeer = PhotonNetwork.NetworkingClient.LoadBalancingPeer,
-                usedTransportProtocol = ConnectionProtocol.Udp
-            };
-            if (PhotonNetwork.InRoom)
-            {
-                string currentRoom = PhotonNetwork.CurrentRoom.Name;
-                PhotonNetwork.LeaveRoom();
-                PhotonNetwork.RejoinRoom(currentRoom);
-            }
         }
         public static void UnlockRoom()
         {
@@ -849,12 +781,6 @@ namespace Juul
             GorillaScoreboardTotalUpdater.instance.UpdateActiveScoreboards();
             Safety.AntiRPCKick();
         }
-
-
-
-
-
-
 
     }
 }

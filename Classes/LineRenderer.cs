@@ -21,6 +21,15 @@ namespace Juul
                 }
             }
 
+            public void UpdatePoints(Vector3[] points)
+            {
+                if (lineRenderer != null)
+                {
+                    lineRenderer.positionCount = points.Length;
+                    lineRenderer.SetPositions(points);
+                }
+            }
+
             public void UpdateColor(Color color)
             {
                 if (lineRenderer != null)
@@ -61,7 +70,7 @@ namespace Juul
 
             LineRenderer lineRenderer = lineObject.AddComponent<LineRenderer>();
 
-            Shader shader = Shader.Find("GUI/Text Shader") ?? Shader.Find("Unlit/Color");
+            Shader shader = Core.GuiTextShader ?? Shader.Find("Unlit/Color");
             lineRenderer.material = new Material(shader);
 
             Color lineColor = color ?? Core.BaseColor;
@@ -91,6 +100,43 @@ namespace Juul
             return new Line { gameObject = lineObject, lineRenderer = lineRenderer };
         }
 
+        public static Line CreateContinuousLine(Vector3[] points, float width = 0.01f, Color? color = null, bool loop = false)
+        {
+            GameObject lineObject = new GameObject("ContinuousLine");
+            lineObject.layer = 0;
+
+            LineRenderer lineRenderer = lineObject.AddComponent<LineRenderer>();
+
+            Shader shader = Core.GuiTextShader ?? Shader.Find("Unlit/Color");
+            lineRenderer.material = new Material(shader);
+
+            Color lineColor = color ?? Core.BaseColor;
+            lineRenderer.material.color = lineColor;
+
+            lineRenderer.positionCount = points.Length;
+            lineRenderer.SetPositions(points);
+
+            lineRenderer.startWidth = width;
+            lineRenderer.endWidth = width;
+            lineRenderer.startColor = lineColor;
+            lineRenderer.endColor = lineColor;
+
+            lineRenderer.numCapVertices = 5;
+            lineRenderer.numCornerVertices = 5;
+            lineRenderer.useWorldSpace = true;
+            lineRenderer.alignment = LineAlignment.View;
+            lineRenderer.loop = loop;
+
+            lineRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            lineRenderer.receiveShadows = false;
+            lineRenderer.allowOcclusionWhenDynamic = false;
+
+            lineRenderer.enabled = true;
+            lineObject.SetActive(true);
+
+            return new Line { gameObject = lineObject, lineRenderer = lineRenderer };
+        }
+
         public static void DeleteLine(Line line)
         {
             if (line != null)
@@ -102,7 +148,7 @@ namespace Juul
             GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             sphere.transform.position = position;
             sphere.transform.localScale = Vector3.one * size;
-            sphere.GetComponent<Renderer>().material.shader = Shader.Find("GorillaTag/UberShader");
+            sphere.GetComponent<Renderer>().material.shader = Core.UberShader;
             sphere.GetComponent<Renderer>().material.color = color;
             GameObject.Destroy(sphere.GetComponent<Collider>());
 
@@ -142,7 +188,7 @@ namespace Juul
 
             LineRenderer lineRenderer = lineObject.AddComponent<LineRenderer>();
 
-            Shader shader = Shader.Find("GUI/Text Shader") ?? Shader.Find("Unlit/Color");
+            Shader shader = Core.GuiTextShader ?? Shader.Find("Unlit/Color");
             lineRenderer.material = new Material(shader);
             lineRenderer.material.color = Core.BaseColor;
 

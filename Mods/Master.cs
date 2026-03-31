@@ -1,4 +1,4 @@
-﻿using BepInEx;
+using BepInEx;
 using ExitGames.Client.Photon;
 using ExitGames.Client.Photon.StructWrapping;
 using GorillaExtensions;
@@ -31,6 +31,7 @@ using UnityEngine.XR;
 using UnityEngine.XR.Interaction.Toolkit;
 using Valve.VR.InteractionSystem;
 using static BuilderMaterialOptions;
+using static GameEntityDelayedDestroy;
 using static Mono.Security.X509.X520;
 using static NetEventOptions;
 using static UnityEngine.Rendering.GPUSort;
@@ -57,7 +58,7 @@ namespace Juul
             }
         }
 
-       
+
         public static void DestroyAllEntitys()
         {
             if (PhotonNetwork.InRoom && PhotonNetwork.IsMasterClient)
@@ -80,8 +81,6 @@ namespace Juul
             }, false);
         }
        
-
-
         public static float delay;
         public static void UnTagGun()
         {
@@ -599,7 +598,6 @@ namespace Juul
                 }
             }, true); 
         }
-
 
         public static List<T> GetAllType<T>() where T : UnityEngine.Object
         {
@@ -1866,14 +1864,6 @@ namespace Juul
                 view.RPC("RemotePlayerCaught", RpcTarget.All, new object[0]);
             }, true);
         }
-
-
-
-
-
-
-
-
 
     }
 }

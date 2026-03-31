@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using UnityEngine;
@@ -15,6 +15,7 @@ namespace Juul
         public bool IsOutlined;
         public bool IsCatRotated;
         public bool IsCatLeft;
+        public bool IsRightHanded;
         public int GunStyle;
         public float GunLineWidth;
         public float GunSphereSize;
@@ -52,6 +53,7 @@ namespace Juul
                 IsOutlined = Core.IsOutlined,
                 IsCatRotated = Core.IsCatRotated,
                 IsCatLeft = Core.IsCatLeft,
+                IsRightHanded = Core.IsRightHanded,
                 GunStyle = (int)GunLib.currentLineStyle,
                 GunLineWidth = GunLib.GunLineWidth,
                 GunSphereSize = GunLib.SphereSize
@@ -76,6 +78,7 @@ namespace Juul
             Core.IsOutlined = cfg.IsOutlined;
             Core.IsCatRotated = cfg.IsCatRotated;
             Core.IsCatLeft = cfg.IsCatLeft;
+            Core.IsRightHanded = cfg.IsRightHanded;
             GunLib.currentLineStyle = (GunLib.GunLineStyle)cfg.GunStyle;
             GunLib.GunLineWidth = cfg.GunLineWidth;
             GunLib.SphereSize = cfg.GunSphereSize;

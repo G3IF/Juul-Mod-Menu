@@ -434,7 +434,192 @@ namespace Juul
                     Colors.Blend(Color.red, Color.magenta, Color.white, Color.white),
                     Colors.Blend(Color.magenta, Color.white, Color.white)
                 }
-            }
+            },
+            new Theme()
+            {
+                Name = "Abyssal",
+                Speed = 0.4f,
+                Colors = new Color[]
+                {
+                    Colors.Blend(Color.blue, Color.black, Color.black),
+                    Colors.Blend(Color.cyan, Color.blue, Color.black),
+                    Color.black,
+                    Colors.Blend(Color.blue, Color.black)
+                }
+            },
+            new Theme()
+            {
+                Name = "Wildfire",
+                Speed = 1.1f,
+                Colors = new Color[]
+                {
+                    Color.yellow,
+                    Colors.Blend(Color.yellow, Color.red),
+                    Color.red,
+                    Colors.Blend(Color.red, Color.black),
+                    Colors.Blend(Color.red, Color.yellow, Color.yellow)
+                }
+            },
+            new Theme()
+            {
+                Name = "Dusk",
+                Speed = 0.45f,
+                Colors = new Color[]
+                {
+                    Colors.Blend(Color.red, Color.magenta, Color.black),
+                    Colors.Blend(Color.magenta, Color.blue, Color.black),
+                    Colors.Blend(Color.blue, Color.black, Color.black),
+                    Colors.Blend(Color.red, Color.yellow, Color.black)
+                }
+            },
+            new Theme()
+            {
+                Name = "Bioluminescent",
+                Speed = 0.55f,
+                Colors = new Color[]
+                {
+                    Colors.Blend(Color.cyan, Color.green, Color.white),
+                    Colors.Blend(Color.cyan, Color.blue, Color.black),
+                    Colors.Blend(Color.green, Color.cyan, Color.black),
+                    Colors.Blend(Color.blue, Color.black)
+                }
+            },
+            new Theme()
+            {
+                Name = "Candy",
+                Speed = 0.7f,
+                Colors = new Color[]
+                {
+                    Colors.Blend(Color.red, Color.white, Color.white),
+                    Colors.Blend(Color.magenta, Color.white, Color.white),
+                    Colors.Blend(Color.cyan, Color.white, Color.white),
+                    Colors.Blend(Color.yellow, Color.white, Color.white)
+                }
+            },
+            new Theme()
+            {
+                Name = "Solar",
+                Speed = 0.8f,
+                Colors = new Color[]
+                {
+                    Colors.Blend(Color.white, Color.yellow, Color.white),
+                    Colors.Blend(Color.yellow, Color.yellow, Color.red),
+                    Colors.Blend(Color.red, Color.yellow),
+                    Colors.Blend(Color.red, Color.red, Color.black)
+                }
+            },
+            new Theme()
+            {
+                Name = "Holographic",
+                Speed = 1.3f,
+                Colors = new Color[]
+                {
+                    Colors.Blend(Color.cyan, Color.white),
+                    Colors.Blend(Color.magenta, Color.white),
+                    Colors.Blend(Color.cyan, Color.magenta, Color.white),
+                    Colors.Blend(Color.blue, Color.cyan, Color.white),
+                    Colors.Blend(Color.magenta, Color.red, Color.white)
+                }
+            },
+            new Theme()
+            {
+                Name = "Swamp",
+                Speed = 0.5f,
+                Colors = new Color[]
+                {
+                    Colors.Blend(Color.green, Color.black, Color.black),
+                    Colors.Blend(Color.green, Color.yellow, Color.black),
+                    Colors.Blend(Color.black, Color.green, Color.black),
+                    Colors.Blend(Color.green, Color.cyan, Color.black)
+                }
+            },
+            new Theme()
+            {
+                Name = "Prism",
+                Speed = 1.0f,
+                Colors = new Color[]
+                {
+                    Colors.Blend(Color.red, Color.white),
+                    Colors.Blend(Color.yellow, Color.white),
+                    Colors.Blend(Color.green, Color.white),
+                    Colors.Blend(Color.cyan, Color.white),
+                    Colors.Blend(Color.blue, Color.white),
+                    Colors.Blend(Color.magenta, Color.white)
+                }
+            },
+            new Theme()
+            {
+                Name = "Obsidian",
+                Speed = 0.35f,
+                Colors = new Color[]
+                {
+                    Color.black,
+                    Colors.Blend(Color.black, Color.gray),
+                    Colors.Blend(Color.gray, Color.blue, Color.black),
+                    Colors.Blend(Color.black, Color.black, Color.gray)
+                }
+            },
+            new Theme()
+            {
+                Name = "Flamingo",
+                Speed = 0.55f,
+                Colors = new Color[]
+                {
+                    Colors.Blend(Color.red, Color.magenta, Color.white, Color.white),
+                    Colors.Blend(Color.magenta, Color.white, Color.white),
+                    Colors.Blend(Color.red, Color.white, Color.white),
+                    Colors.Blend(Color.magenta, Color.red, Color.white)
+                }
+            },
+            new Theme()
+            {
+                Name = "Glacier",
+                Speed = 0.3f,
+                Colors = new Color[]
+                {
+                    Color.white,
+                    Colors.Blend(Color.cyan, Color.white, Color.white, Color.white),
+                    Colors.Blend(Color.blue, Color.white, Color.white),
+                    Colors.Blend(Color.cyan, Color.blue, Color.white)
+                }
+            },
+            new Theme()
+            {
+                Name = "Magma",
+                Speed = 0.9f,
+                Colors = new Color[]
+                {
+                    Colors.Blend(Color.red, Color.yellow),
+                    Colors.Blend(Color.red, Color.black),
+                    Colors.Blend(Color.red, Color.red, Color.yellow),
+                    Color.black,
+                    Colors.Blend(Color.red, Color.yellow, Color.black)
+                }
+            },
+            new Theme()
+            {
+                Name = "Ultraviolet",
+                Speed = 0.85f,
+                Colors = new Color[]
+                {
+                    Colors.Blend(Color.blue, Color.magenta, Color.magenta),
+                    Colors.Blend(Color.magenta, Color.blue, Color.blue),
+                    Colors.Blend(Color.blue, Color.black),
+                    Colors.Blend(Color.magenta, Color.black)
+                }
+            },
+            new Theme()
+            {
+                Name = "Spring",
+                Speed = 0.5f,
+                Colors = new Color[]
+                {
+                    Colors.Blend(Color.green, Color.yellow, Color.white),
+                    Colors.Blend(Color.cyan, Color.green, Color.white),
+                    Colors.Blend(Color.magenta, Color.white, Color.white),
+                    Colors.Blend(Color.yellow, Color.green, Color.white)
+                }
+            },
         };
     }
 }

@@ -33,10 +33,6 @@ namespace Juul
         public static int Speedinde = 0;
         public static string[] platInputNames = { "Grip", "Trigger" };
 
-
-
-
-
         public static void NoClipFly()
         {
             if (Inputs.RightPrimary)
@@ -66,7 +62,6 @@ namespace Juul
             }
         }
 
-      
         public static void Noclip()
         {
             if (Inputs.RightPrimary)
@@ -162,7 +157,6 @@ namespace Juul
             }
         }
       
-
         public static void WASDFly()
         {
             float sped = 5f;
@@ -199,11 +193,9 @@ namespace Juul
             }
             pos = UnityInput.Current.mousePosition;
         }
-        public static GameObject platL = null;
-        public static GameObject platR = null;
-        public static int platMode = 0; 
-        public static int platInput = 0; 
-        public static float rainbowHue = 0f;
+        public static GameObject platL, platR;
+        public static int platMode = 1;
+        public static int platInput = 0;
 
         public static void Platforms()
         {
@@ -219,36 +211,15 @@ namespace Juul
                     platL.transform.rotation = GorillaTagger.Instance.leftHandTransform.rotation;
                     platL.GetComponent<Renderer>().material.shader = Shader.Find("Sprites/Default");
                 }
-                platL.transform.position = GorillaTagger.Instance.leftHandTransform.position;
-                platL.transform.rotation = GorillaTagger.Instance.leftHandTransform.rotation;
                 Renderer rendL = platL.GetComponent<Renderer>();
-                switch (platMode)
+                if (platMode == 0) rendL.enabled = false;
+                else
                 {
-                    case 0: 
-                        rendL.enabled = true;
-                        rendL.material.color = new Color(Core.BaseColor.r, Core.BaseColor.g, Core.BaseColor.b, 1f);
-                        break;
-                    case 1: 
-                        rendL.enabled = false;
-                        break;
-                    case 2: 
-                        rendL.enabled = true;
-                        rainbowHue += Time.deltaTime * 0.5f;
-                        if (rainbowHue > 1f) rainbowHue -= 1f;
-                        rendL.material.color = Color.HSVToRGB(rainbowHue, 1f, 1f);
-                        break;
-                    case 3: 
-                        rendL.enabled = true;
-                        rendL.material.color = new Color(Core.BaseColor.r, Core.BaseColor.g, Core.BaseColor.b, 0.3f); 
-                                                                                                                     
-                        break;
+                    rendL.enabled = true;
+                    rendL.material.color = new Color(Core.BaseColor.r, Core.BaseColor.g, Core.BaseColor.b, (platMode == 1) ? 0.5f : 1f);
                 }
             }
-            else if (platL != null)
-            {
-                UnityEngine.Object.Destroy(platL);
-                platL = null;
-            }
+            else if (platL != null) { UnityEngine.Object.Destroy(platL); platL = null; }
             if (rightInput)
             {
                 if (platR == null)
@@ -259,48 +230,17 @@ namespace Juul
                     platR.transform.rotation = GorillaTagger.Instance.rightHandTransform.rotation;
                     platR.GetComponent<Renderer>().material.shader = Shader.Find("Sprites/Default");
                 }
-                platR.transform.position = GorillaTagger.Instance.rightHandTransform.position;
-                platR.transform.rotation = GorillaTagger.Instance.rightHandTransform.rotation;
                 Renderer rendR = platR.GetComponent<Renderer>();
-                switch (platMode)
-                {
-                    case 0: 
-                        rendR.enabled = true;
-                        rendR.material.color = new Color(Core.BaseColor.r, Core.BaseColor.g, Core.BaseColor.b, 1f);
-                        break;
-                    case 1: 
-                        rendR.enabled = false;
-                        break;
-                    case 2: 
-                        rendR.enabled = true;
-                        rendR.material.color = Color.HSVToRGB(rainbowHue, 1f, 1f);
-                        break;
-                    case 3: 
-                        rendR.enabled = true;
-                        rendR.material.color = new Color(Core.BaseColor.r, Core.BaseColor.g, Core.BaseColor.b, 0.3f);
-                        break;
-                }
-            }
-            else if (platR != null)
-            {
-                UnityEngine.Object.Destroy(platR);
-                platR = null;
-            }
-            if (platMode == 3)
-            {
-                if (leftInput || rightInput)
-                {
-                    foreach (MeshCollider v in Resources.FindObjectsOfTypeAll<MeshCollider>())
-                        v.enabled = false;
-                }
+                if (platMode == 0) rendR.enabled = false;
                 else
                 {
-                    foreach (MeshCollider v in Resources.FindObjectsOfTypeAll<MeshCollider>())
-                        v.enabled = true;
+                    rendR.enabled = true;
+                    rendR.material.color = new Color(Core.BaseColor.r, Core.BaseColor.g, Core.BaseColor.b, (platMode == 1) ? 0.5f : 1f);
                 }
             }
+            else if (platR != null) { UnityEngine.Object.Destroy(platR); platR = null; }
         }
-        private static string[] modeNames = new string[] { "Normal", "Invisible", "Rainbow", "Noclip" };
+        private static string[] modeNames = new string[] {"Normal"};
    
         public static void ChangeFlySpeed(bool forward)
         {
@@ -339,10 +279,6 @@ namespace Juul
             string message = $"Platform Type Changed To: {modeNames[platMode]}";
             NotifiLib.SendNotification("", message, 2.5f, NotifiLib.NotifiReason.Success);
         }
-
-
-
-
 
         public static Vector3? checkpointPos = null;
         public static GameObject orb = null;
@@ -404,34 +340,93 @@ namespace Juul
             NotifiLib.SendNotification("", $"Pull Strength: {pullStrength}", 1.5f, NotifiLib.NotifiReason.Info);
         }
 
-        public static float wallWalkAmount = 0.56f;
+        public static float wallAssistAmount = 0.56f;
 
         public static void WallAssist()
         {
-            if (Inputs.RightGrip)
-            {
+            
                 if (GTPlayer.Instance.rightHand.wasColliding)
                 {
-                    GTPlayer.Instance.GetComponent<Rigidbody>().linearVelocity += -GTPlayer.Instance.rightHand.controllerTransform.up * 0.56f;
+                    GTPlayer.Instance.GetComponent<Rigidbody>().linearVelocity += -GTPlayer.Instance.rightHand.controllerTransform.up * wallAssistAmount;
                     RaycastHit raycastHit;
                     Physics.Raycast(GTPlayer.Instance.rightHand.controllerTransform.position, -GTPlayer.Instance.rightHand.controllerTransform.up, out raycastHit);
                 }
-            }
-
-            if (Inputs.LeftGrip)
-            {
+            
                 if (GTPlayer.Instance.leftHand.wasColliding)
                 {
-                    GTPlayer.Instance.GetComponent<Rigidbody>().linearVelocity += -GTPlayer.Instance.leftHand.controllerTransform.up * 0.56f;
+                    GTPlayer.Instance.GetComponent<Rigidbody>().linearVelocity += -GTPlayer.Instance.leftHand.controllerTransform.up * wallAssistAmount;
                     RaycastHit raycastHit2;
                     Physics.Raycast(GTPlayer.Instance.leftHand.controllerTransform.position, -GTPlayer.Instance.leftHand.controllerTransform.up, out raycastHit2);
                 }
+            
+        }
+
+        private static int wallForceIndex = 2;
+        private static float activeWallForce = 9.81f;
+        private static readonly float[] wallForces = { 2f, 5f, 9.81f, 15f, 50f };
+        private static readonly string[] wallForceNames = { "Feeble", "Soft", "Default", "Firm", "Intense" };
+        private static Vector3 currentWallNormal = Vector3.up;
+        private static bool contactSaved = false;
+
+        public static void AdjustWallWalkStrength(bool increase)
+        {
+            if (increase)
+                wallForceIndex = (wallForceIndex + 1) % wallForces.Length;
+            else
+                wallForceIndex = (wallForceIndex - 1 + wallForces.Length) % wallForces.Length;
+
+            activeWallForce = wallForces[wallForceIndex];
+            NotifiLib.SendNotification("", $"Wall Walk Strength: {wallForceNames[wallForceIndex]}", 2f, NotifiLib.NotifiReason.Success);
+        }
+
+        public static void WallWalk()
+        {
+            bool grabInput = Inputs.RightGrip || Inputs.LeftGrip;
+            
+            if (GTPlayer.Instance.rightHand.wasColliding || GTPlayer.Instance.leftHand.wasColliding)
+            {
+                Transform hand = GTPlayer.Instance.rightHand.wasColliding ? GTPlayer.Instance.rightHand.controllerTransform : GTPlayer.Instance.leftHand.controllerTransform;
+                if (Physics.Raycast(hand.position, -hand.up, out RaycastHit hit, 0.5f) || 
+                    Physics.Raycast(hand.position, hand.forward, out hit, 0.5f))
+                {
+                    currentWallNormal = hit.normal;
+                    contactSaved = true;
+                }
+            }
+
+            if (!grabInput)
+                contactSaved = false;
+
+            if (contactSaved && grabInput)
+            {
+                GorillaTagger.Instance.rigidbody.AddForce(-currentWallNormal * activeWallForce, ForceMode.Acceleration);
+                ZeroGravity();
             }
         }
 
+        public static void LegitimateWallWalk()
+        {
+            float maxRange = 0.25f;
+            float legitPull = 2.5f;
 
+            if (Inputs.LeftGrip)
+            {
+                Transform leftHand = GTPlayer.Instance.leftHand.controllerTransform;
+                if (Physics.Raycast(leftHand.position, -leftHand.up, out RaycastHit hitL, maxRange))
+                {
+                    GorillaTagger.Instance.rigidbody.AddForce(-hitL.normal * legitPull, ForceMode.Acceleration);
+                }
+            }
 
-
+            if (Inputs.RightGrip)
+            {
+                Transform rightHand = GTPlayer.Instance.rightHand.controllerTransform;
+                if (Physics.Raycast(rightHand.position, -rightHand.up, out RaycastHit hitR, maxRange))
+                {
+                    GorillaTagger.Instance.rigidbody.AddForce(-hitR.normal * legitPull, ForceMode.Acceleration);
+                }
+            }
+        }
 
     }
 }

@@ -20,7 +20,6 @@ using UnityEngine.XR;
 using Hashtable = ExitGames.Client.Photon.Hashtable;
 using JoinType = GorillaNetworking.JoinType;
 
-
 namespace Juul
 {
     internal class Fun
@@ -156,16 +155,6 @@ namespace Juul
             }
         }
        
-
-
-
-
-
-
-
-
-
-
         public static void SoundSpammer(int num)
         {
             if (ControllerInputPoller.instance.rightGrab || ControllerInputPoller.instance.leftGrab)
@@ -284,7 +273,6 @@ namespace Juul
             }
             FlushRPCS();
         }
-
 
         public static bool nettrigsoff = false, qboff = false;
 
@@ -406,7 +394,7 @@ namespace Juul
                 targetObject2.transform.SetParent(GTPlayer.Instance.leftHand.controllerTransform);
             }
         }
-        public static void GrabCamera()
+        /*public static void GrabCamera()
         {
             if (Inputs.RightGrip)
             {
@@ -430,7 +418,7 @@ namespace Juul
                 leftCamera.transform.rotation = GorillaTagger.Instance.leftHandTransform.rotation;
                 leftCamera.transform.SetParent(GorillaTagger.Instance.leftHandTransform);
             }
-        }
+        }*/
         public static void OrbitBug()
         {
             GameObject targetObject = GameObject.Find("Floating Bug Holdable");
@@ -458,7 +446,7 @@ namespace Juul
             targetObject.transform.position = orbitPos;
             targetObject.transform.Rotate(Vector3.up, 15f * 50f * Time.deltaTime);
         }
-        public static void OrbitCamera()
+        /*public static void OrbitCamera()
         {
             LckSocialCamera camera = LckSocialCameraManager.Instance._socialCameraCococamInstance;
             camera.visible = true;
@@ -470,7 +458,7 @@ namespace Juul
             new Vector3(Mathf.Cos(angle) * 2f, 1f, Mathf.Sin(angle) * 2f);
             camera.transform.position = orbitPos;
             camera.transform.LookAt(GTPlayer.Instance.transform.position);
-        }
+        }*/
         public static void SpazBug()
         {
             GameObject targetObject = GameObject.Find("Floating Bug Holdable");
@@ -519,7 +507,7 @@ namespace Juul
                 Time.time * 100f
             );
         }
-        public static void SpazCamera()
+        /*public static void SpazCamera()
         {
             LckSocialCamera camera = LckSocialCameraManager.Instance._socialCameraCococamInstance;
             camera.visible = true;
@@ -538,7 +526,7 @@ namespace Juul
                 Mathf.Cos(Time.time * 15f) * 360f,
                 Mathf.Sin(Time.time * 10f) * 360f
             );
-        }
+        }*/
         public static void DestroyBug()
         {
             GameObject targetObject = GameObject.Find("Floating Bug Holdable");
@@ -554,7 +542,7 @@ namespace Juul
             GameObject targetObject = GameObject.Find("Firefly");
             targetObject.transform.position = new Vector3(999f, 999f, 999f);
         }
-        public static void DestroyCamera()
+        /*public static void DestroyCamera()
         {
             LckSocialCamera camera = LckSocialCameraManager.Instance._socialCameraCococamInstance;
             camera.visible = false;
@@ -562,7 +550,7 @@ namespace Juul
             camera.m_CameraVisuals.SetNetworkedVisualsActive(false);
             camera.m_CameraVisuals.SetRecordingState(false);
             camera.transform.position = new Vector3(999f, 999f, 999f);
-        }
+        }*/
         public static void ChangeNameTo(string newName)
         {
             var computer = GorillaComputer.instance;
@@ -852,9 +840,6 @@ namespace Juul
                 network.photonView.RPC("SetRoomMap_RPC", targetPlayer, -1);
             }
         }
-
-
-
 
     }
 }

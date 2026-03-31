@@ -12,7 +12,7 @@ namespace Juul
     {
         public const string guid = "Juul";
         public const string title = "Juul";
-        public const string version = "2.0";
+        public const string version = "2.5";
         private GameObject coreObject;
 
         void Awake()
@@ -73,7 +73,6 @@ namespace Juul
             {
             }
 
-            
         }
 
         void OnDestroy()

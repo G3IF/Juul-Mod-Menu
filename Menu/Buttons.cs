@@ -1,5 +1,4 @@
-﻿using GorillaGameModes;
-using juul_v2_dev_build.Mods;
+using GorillaGameModes;
 using Photon.Pun;
 using System;
 using System.Collections.Generic;
@@ -19,13 +18,16 @@ namespace Juul
         public static Button GunStyleButton;
         public static Button GunLineSizeButton;
         public static Button GunSphereSizeButton;
+        public static Button RoomJoinerButton;
 
         public static Category GetCategory(string name)
         {
+            if (Modules == null) return null;
             return Modules.FirstOrDefault(c => c.Name == name);
         }
 
         public static Category[] Modules = null;
+        public static Category EnabledCategory;
 
         public static bool ghostview = true;
 
@@ -34,10 +36,13 @@ namespace Juul
             if (initialized) return;
             initialized = true;
 
+            EnabledCategory = new Category { Name = "Enabled" };
+
             ThemeButton = new Button { Name = $"Theme: {Core.GetCurrentThemeName()}", Toggle = false, Incremental = true, Up = () => Core.ChangeTheme(true), Down = () => Core.ChangeTheme(false) };
             GunStyleButton = new Button { Name = "Gun Style: " + GunLib.currentLineStyle.ToString(), Toggle = false, Incremental = true, Up = () => GunLib.ChangeGunStyle(true), Down = () => GunLib.ChangeGunStyle(false) };
             GunLineSizeButton = new Button { Name = string.Format("Gun Line Size: {0}", GunLib.GunLineWidth), Toggle = false, Incremental = true, Up = () => GunLib.ChangeGunLineSize(true), Down = () => GunLib.ChangeGunLineSize(false) };
             GunSphereSizeButton = new Button { Name = string.Format("Gun Sphere Size: {0}", GunLib.SphereSize), Toggle = false, Incremental = true, Up = () => GunLib.ChangeGunSphereScale(true), Down = () => GunLib.ChangeGunSphereScale(false) };
+            RoomJoinerButton = new Button { Name = "Join Room: ", Toggle = true, OnceEnable = () => KeyboardManager.IsJoiningRoom = true, OnceDisable = () => KeyboardManager.IsJoiningRoom = false };
 
             Modules = new Category[]
             {
@@ -45,42 +50,64 @@ namespace Juul
                     Name = "Settings",
                     Buttons = {
                         new Button { Name = "discord.gg/juulgtag", Toggle = false, Label = true },
+                    },
+                    Subcategories = {
+                        new Category {
+                            Name = "Menu Settings",
+                            Buttons = {
+                                new Button { Name = "Save Config", Toggle = false, OnEnable = () => Configs.SaveConfig() },
+                                new Button { Name = "Load Config", Toggle = false, OnEnable = () => Configs.LoadConfig() },
 
-                        new Button { Name = "Save Config", Toggle = false, OnEnable = () => Configs.SaveConfig() },
-                        new Button { Name = "Load Config", Toggle = false, OnEnable = () => Configs.LoadConfig() }, ThemeButton,
+                                ThemeButton,
 
-                        new Button { Name = "Page Buttons", Toggle = false, Incremental = true, Up = () => Core.ChangePageButtons(false), Down = () => Core.ChangePageButtons(true) },
+                                new Button { Name = "Page Buttons", Toggle = false, Incremental = true, Up = () => Core.ChangePageButtons(false), Down = () => Core.ChangePageButtons(true) },
+                                new Button { Name = "Menu Size", Toggle = false, Incremental = true, Up = () => Core.ChangeMenuScale(true), Down = () => Core.ChangeMenuScale(false) },
+                                new Button { Name = "Button Inset", Toggle = false, Incremental = true, Up = () => Core.ChangeButtonInset(true), Down = () => Core.ChangeButtonInset(false) },
+                                new Button { Name = "Text Size", Toggle = false, Incremental = true, Up = () => Core.ChangeTextSize(true), Down = () => Core.ChangeTextSize(false) },
 
-                        new Button { Name = "Menu Size", Toggle = false, Incremental = true, Up = () => Core.ChangeMenuScale(true), Down = () => Core.ChangeMenuScale(false) },
+                                new Button { Name = "Make Menu Rounded", Toggle = false, OnEnable = () => { Core.IsRounded = !Core.IsRounded; Core.RebuildMenu();} },
+                                new Button { Name = "Outline Menu", Toggle = false, OnEnable = () => Core.IsOutlined = !Core.IsOutlined },
+                                new Button { Name = "Rotated Sidebar", Toggle = false, OnEnable = () => Core.IsCatRotated = !Core.IsCatRotated },
+                                new Button { Name = "Sidebar Position", Toggle = false, OnEnable = () => Core.IsCatLeft = !Core.IsCatLeft },
+                                new Button { Name = "Right Handed", Toggle = false, OnEnable = () => Core.IsRightHanded = !Core.IsRightHanded },
+                                new Button { Name = "Boards Gradient", Toggle = true, Enabled = true, OnceEnable = () => Core.IsBoardGradientEnabled = true, OnceDisable = () => Core.IsBoardGradientEnabled = false },
+                            }
+                        },
+                        new Category {
+                            Name = "GunLib Settings",
+                            Buttons = {
+                                GunStyleButton,
+                                GunLineSizeButton,
+                                GunSphereSizeButton,
+                                new Button { Name = "Test Gunlib", Toggle = true, OnEnable = () => GunLib.StartPointerSystem(() => {}, false) }, 
+                            }
+                        },
+                        new Category {
+                            Name = "Mod Settings",
+                            Buttons = {
+                                new Button { Name = "Advanced Nametags", Toggle = true, OnceEnable = () => Visual.AdvancedNametags = true, OnceDisable = () => Visual.AdvancedNametags = false },
+                                new Button { Name = "Disable Notifications", Toggle = true, OnceEnable = () => NotifiLib.Disablenotifcations = true, OnceDisable = () => NotifiLib.Disablenotifcations = false },
+                                new Button { Name = string.Format("Proj Delay: Normal"), Toggle = false, Incremental = true, Up = () => Projectiles.DelayChangeUp(), Down = () => Projectiles.DelayChangeDown() },
+                                new Button { Name = "CS Projectiles", Toggle = true, OnceEnable = () => Projectiles.CsProjectiles = true, OnceDisable = () => Projectiles.CsProjectiles = false },
+                            }
+                        }
+                    }
+                },
+                EnabledCategory,            
+                PlayerMenu.GetPlayersCategory(),
+                new Category {
+                    Name = "Room",
+                    Buttons = {
+                        RoomJoinerButton,
+                        new Button { Name = "Join Random", Toggle = false, OnEnable = Safety.JoinRandom },
 
-                        new Button { Name = "Button Inset", Toggle = false, Incremental = true, Up = () => Core.ChangeButtonInset(true), Down = () => Core.ChangeButtonInset(false) },
-
-                        new Button { Name = "Text Size", Toggle = false, Incremental = true, Up = () => Core.ChangeTextSize(true), Down = () => Core.ChangeTextSize(false) },
-
-                        new Button { Name = "Make Menu Rounded", Toggle = false, OnEnable = () => { Core.IsRounded = !Core.IsRounded; Core.RebuildMenu();} },
-
-                        new Button { Name = "Outline Menu", Toggle = false, OnEnable = () => Core.IsOutlined = !Core.IsOutlined },
-
-                        new Button { Name = "Rotated Sidebar", Toggle = false, OnEnable = () => Core.IsCatRotated = !Core.IsCatRotated },
-
-                        new Button { Name = "Sidebar Position", Toggle = false, OnEnable = () => Core.IsCatLeft = !Core.IsCatLeft }, GunStyleButton, GunLineSizeButton, GunSphereSizeButton,
-
-                        new Button { Name = "Test Gunlib", Toggle = true, OnEnable = () => GunLib.StartPointerSystem(() => {}, false) },
-
-                        new Button { Name = "Advanced Nametags", Toggle = true, OnceEnable = () => Visual.AdvancedNametags = true, OnceDisable = () => Visual.AdvancedNametags = false },
-
-                        new Button { Name = "Disable Notifications", Toggle = true, OnceEnable = () => NotifiLib.Disablenotifcations = true, OnceDisable = () => NotifiLib.Disablenotifcations = false },
-
-                        new Button { Name = string.Format("Proj Delay: Normal"), Toggle = false, Incremental = true, Up = () => Projectiles.DelayChangeUp(), Down = () => Projectiles.DelayChangeDown() },
-
-                        new Button { Name = "CS Projectiles", Toggle = true, OnceEnable = () => Projectiles.CsProjectiles = true, OnceDisable = () => Projectiles.CsProjectiles = false },
                     }
                 },
                 new Category {
                     Name = "Movement",
                     Buttons = {
                         new Button { Name = "Platforms", Toggle = true, OnEnable = Movement.Platforms },
-                        new Button { Name = "Platform Type", Toggle = false, Incremental = true, Up = () => Movement.ChangePlatformType(true), Down = () => Movement.ChangePlatformType(false) },
+                        //new Button { Name = "Platform Type", Toggle = false, Incremental = true, Up = () => Movement.ChangePlatformType(true), Down = () => Movement.ChangePlatformType(false) },
 
                         new Button { Name = "WASD Fly", Toggle = true, OnEnable = Movement.WASDFly },
                         new Button { Name = "Flight", Toggle = true, OnEnable = Movement.Fly },
@@ -90,12 +117,15 @@ namespace Juul
                         new Button { Name = "Noclip", Toggle = true, OnEnable = Movement.Noclip },
 
                         new Button { Name = "Speed Boost", Toggle = true, OnEnable = Movement.SpeedBoost },
-                        new Button { Name = "Grip Speed Boost", Toggle = true, OnEnable = Movement.GripSpeedBoost },
                         new Button { Name = "Speed Boost Speed", Toggle = false, Incremental = true, Up = () => Movement.ChangeSpeedBoostSpeed(true), Down = () => Movement.ChangeSpeedBoostSpeed(false) },
+                        new Button { Name = "Grip Speed Boost", Toggle = true, OnEnable = Movement.GripSpeedBoost },    
 
                         new Button { Name = "Pull Mod", Toggle = true, OnEnable = Movement.PullMod },
 
                         new Button { Name = "Wall Assist", Toggle = true, OnEnable = Movement.WallAssist },
+                        new Button { Name = "Wall Walk", Toggle = true, OnEnable = Movement.WallWalk },
+                        new Button { Name = "Wall Walk Strength", Toggle = false, Incremental = true, Up = () => Movement.AdjustWallWalkStrength(true), Down = () => Movement.AdjustWallWalkStrength(false) },
+                        new Button { Name = "Legit Wall Walk", Toggle = true, OnEnable = Movement.LegitimateWallWalk },
 
                         new Button { Name = "Teleport Gun", Toggle = true, OnEnable = Movement.TeleportGun },
 
@@ -103,24 +133,34 @@ namespace Juul
                         new Button { Name = "Low Gravity", Toggle = true, OnEnable = Movement.LowGravity },
                         new Button { Name = "High Gravity", Toggle = true, OnEnable = Movement.HighGravity },
 
-     
-                      new Button { Name = "Bouncy", Toggle = true, OnceEnable = Movement.Bouncy, OnceDisable = Movement.ResetBouncy },
-                     new Button { Name = "Check Point", Toggle = true, OnEnable = Movement.Checkpoint, OnDisable = Movement.DestroyCheckpoint }
+                        new Button { Name = "Bouncy", Toggle = true, OnceEnable = Movement.Bouncy, OnceDisable = Movement.ResetBouncy },
+                        new Button { Name = "Check Point", Toggle = true, OnEnable = Movement.Checkpoint, OnDisable = Movement.DestroyCheckpoint }
                     }
                 },
                 new Category {
-                    Name = "Player",
+                    Name = "Client",
                     Buttons = {
                         new Button { Name = "Invis Monkey", Toggle = true, OnEnable = Players.InvisibleMonke },
                         new Button { Name = "Ghost Monkey", Toggle = true, OnEnable = Players.GhostMonke },
                         new Button { Name = "Enable Ghost View", Toggle = true, Enabled = true, OnceEnable = () => ghostview = true, OnceDisable = () => Players.GhostviewClean() },
 
-                        new Button { Name = "Long Arms", Toggle = true, OnEnable = Players.RArms },
-                        new Button { Name = "Short Arms", Toggle = true, OnEnable = Players.SArms },
+                        new Button { Name = "Long Arms", Toggle = true, OnEnable = Players.RArms, OnDisable = Players.DisableLongArms },
+                        new Button { Name = "Short Arms", Toggle = true, OnEnable = Players.SArms, OnDisable = Players.DisableLongArms },
                         new Button { Name = "Fix Arms", Toggle = true, OnEnable = Players.DisableLongArms },
-                        new Button { Name = "Change Arm Lenth", Toggle = true, OnEnable = Players.ChangeArmLenth },
+                        new Button { Name = "Change Arm Lenth", Toggle = true, OnEnable = Players.ChangeArmLenth, OnDisable = Players.DisableLongArms },
 
                         new Button { Name = "Spin bot", Toggle = true, OnEnable = Players.Spinbot },
+
+                        //new Button { Name = "Uncap FPS", Toggle = false, OnEnable = Safety.UncapFPS },
+                       // new Button { Name = "Set 144 FPS", Toggle = false, OnEnable = Safety.SetFPS144 },
+                       // new Button { Name = "Set 120 FPS", Toggle = false, OnEnable = Safety.SetFPS120 },
+                      //  new Button { Name = "Set 90 FPS", Toggle = false, OnEnable = Safety.SetFPS90 },
+                      //  new Button { Name = "Set 80 FPS", Toggle = false, OnEnable = Safety.SetFPS80 },
+                      //  new Button { Name = "Set 72 FPS", Toggle = false, OnEnable = Safety.SetFPS72 },
+                      //  new Button { Name = "Set 60 FPS", Toggle = false, OnEnable = Safety.SetFPS60 },
+                      //  new Button { Name = "Set 45 FPS", Toggle = false, OnEnable = Safety.SetFPS45 },
+                      //  new Button { Name = "Set 15 FPS", Toggle = false, OnEnable = Safety.SetFPS15 },
+                      //  new Button { Name = "Set 1 FPS", Toggle = false, OnEnable = Safety.SetFPS1 }
                     }
                 },
                 new Category {
@@ -128,14 +168,12 @@ namespace Juul
                     Buttons = {
                         new Button { Name = "Quit Game", Toggle = false, OnEnable = Safety.QuitGame },
 
-                        new Button { Name = "Join Random", Toggle = false, OnEnable = Safety.JoinRandom },
-
-                        new Button { Name = "Anti Ban", Toggle = true, OnEnable = Safety.AntiBan },
+                        new Button { Name = "Semi-Anti Ban", Toggle = true, OnEnable = Safety.AntiBan },
                         new Button { Name = "Spoof Player", Toggle = false, OnEnable = Safety.SpoofPlayer },
                         new Button { Name = "Anti RPC Kick", Toggle = true, OnEnable = Safety.AntiRPCKick },
                         new Button { Name = "Anti Report Disconnect", Toggle = true, OnEnable = Safety.AntiReportDisconnect },
                         new Button { Name = "Anti Report Reconnect", Toggle = true, OnEnable = Safety.AntiReportReconnect },
-                        new Button { Name = "Anti Report Nortify", Toggle = true, OnEnable = Safety.AntiReportNotify },
+                        //new Button { Name = "Anti Report Notify", Toggle = true, OnEnable = Safety.AntiReportNotify },
 
                         new Button { Name = "Restart Game", Toggle = false, OnEnable = Safety.RestartGame },
 
@@ -150,22 +188,15 @@ namespace Juul
                         new Button { Name = "Right Trigger Disconnect", Toggle = true, OnEnable = Safety.DisconnectRT },
 
                         new Button { Name = "No Finger Movement", Toggle = true, OnEnable = Safety.NoFinger },
-
-                        new Button { Name = "Uncap FPS", Toggle = false, OnEnable = Safety.UncapFPS },
-                        new Button { Name = "Set 144 FPS", Toggle = false, OnEnable = Safety.SetFPS144 },
-                        new Button { Name = "Set 120 FPS", Toggle = false, OnEnable = Safety.SetFPS120 },
-                        new Button { Name = "Set 90 FPS", Toggle = false, OnEnable = Safety.SetFPS90 },
-                        new Button { Name = "Set 80 FPS", Toggle = false, OnEnable = Safety.SetFPS80 },
-                        new Button { Name = "Set 72 FPS", Toggle = false, OnEnable = Safety.SetFPS72 },
-                        new Button { Name = "Set 60 FPS", Toggle = false, OnEnable = Safety.SetFPS60 },
-                        new Button { Name = "Set 45 FPS", Toggle = false, OnEnable = Safety.SetFPS45 },
-                        new Button { Name = "Set 15 FPS", Toggle = false, OnEnable = Safety.SetFPS15 },
-                        new Button { Name = "Set 1 FPS", Toggle = false, OnEnable = Safety.SetFPS1 }
                     }
                 },
                 new Category {
                     Name = "Visual",
                     Buttons = {
+                        new Button { Name = "Array List [PC]", Toggle = true, OnEnable = Visual.EnableArrayList, OnceDisable = Visual.DisableArrayList }, // vr coming soon
+                        new Button { Name = "Custom HUD", Toggle = true, OnEnable = Visual.PlayerInfo, OnceDisable = Visual.CleanupPlayerInfo },
+                        new Button { Name = "Name Tags", Toggle = true, OnEnable = Visual.PlayerNameESP, OnceDisable = Visual.CleanupPlayerNameESP },
+
                         new Button { Name = "Chams", Toggle = true, OnEnable = Visual.Chams, OnceDisable = Visual.CleanupChams },
                         new Button { Name = "Infection Chams", Toggle = true, OnEnable = Visual.InfectionChams, OnceDisable = Visual.CleanupInfectionChams },
 
@@ -176,13 +207,11 @@ namespace Juul
                         new Button { Name = "Infection Tracers", Toggle = true, OnEnable = Visual.InfectionTracers, OnceDisable = Visual.CleanupInfectionTracers },
 
                         new Button { Name = "2D Box ESP", Toggle = true, OnEnable = Visual.Box2DESP, OnceDisable = Visual.CleanupBox2DESP },
+                        new Button { Name = "2D Corner ESP", Toggle = true, OnEnable = Visual.Box2DCornerESP, OnceDisable = Visual.CleanupBox2DCornerESP },
                         new Button { Name = "3D Box ESP", Toggle = true, OnEnable = Visual.Box3DESP, OnceDisable = Visual.CleanupBox3DESP },
+                        new Button { Name = "3D Corner ESP", Toggle = true, OnEnable = Visual.Box3DESPV2, OnceDisable = Visual.CleanupBox3DESPV2 },
 
-                        new Button { Name = "Custom HUD", Toggle = true, OnEnable = Visual.PlayerInfo, OnceDisable = Visual.CleanupPlayerInfo },
-
-                        new Button { Name = "Name Tags", Toggle = true, OnEnable = Visual.PlayerNameESP, OnceDisable = Visual.CleanupPlayerNameESP },
-
-                        new Button { Name = "Menu Them Rig [CS]", Toggle = true, OnEnable = Visual.MenuThemeRig, OnceDisable = Visual.RigColorFix },
+                        new Button { Name = "Menu Theme Rig [CS]", Toggle = true, OnEnable = Visual.MenuThemeRig, OnceDisable = Visual.RigColorFix },
 
                         new Button { Name = "Rainbow All [CS]", Toggle = true, OnEnable = Visual.OutcastAll },
                     }
@@ -193,7 +222,7 @@ namespace Juul
                         new Button { Name = "RGB Monkey [Stump]", Toggle = true, OnEnable = Fun.FadeMonkey },
                         new Button { Name = "Hard RGB Monkey [Stump]", Toggle = true, OnEnable = Fun.FadeMonkeyHardRGB },
                         new Button { Name = "Epilepsy Monkey [Stump]", Toggle = true, OnEnable = Fun.FlashMonkey },
-                        new Button { Name = "BAW Epilepsy Monkey [Stump]", Toggle = true, OnEnable = Fun.BAWFlashMonkey },
+                        new Button { Name = "B&W Epilepsy Monkey [Stump]", Toggle = true, OnEnable = Fun.BAWFlashMonkey },
                         new Button { Name = "Copy Color Gun [Stump]", Toggle = true, OnEnable = Fun.CopyColorGun },
 
                         new Button { Name = "Unlock All [Gadgets]", Toggle = true, OnEnable = Fun.SIUnlockAll },
@@ -257,9 +286,9 @@ namespace Juul
                         new Button { Name = "Set Name to 7NV", Toggle = false, OnEnable = () => Fun.ChangeNameTo("7NV") },
                         new Button { Name = "Set Name to JUULONTOP", Toggle = false, OnEnable = () => Fun.ChangeNameTo("JUULONTOP") },
 
-                        new Button { Name = "Unlock All Cosmetic", Toggle = false, OnEnable = () => Fun.UnlockAllCosmetics() },
-                        new Button { Name = "Unlock Subscription", Toggle = true, OnEnable = Fun.UnlockSubscription },
-                        new Button { Name = "Unlock All Shinyrocks", Toggle = false, OnEnable = () => Fun.GiveUnlimitedShinyRocks() },
+                        new Button { Name = "Unlock All Cosmetic [CS]", Toggle = false, OnEnable = () => Fun.UnlockAllCosmetics() },
+                        new Button { Name = "Unlock Subscription [CS]", Toggle = true, OnEnable = Fun.UnlockSubscription },
+                        new Button { Name = "Unlock All Shinyrocks [CS]", Toggle = false, OnEnable = () => Fun.GiveUnlimitedShinyRocks() },
 
                         new Button { Name = "Sticky Holdables In Hand", Toggle = true, OnEnable = () => Fun.StickHoldables() },
                         new Button { Name = "Spin Holdables In Hand", Toggle = true, OnEnable = () => Fun.SpinHoldables() },
@@ -413,87 +442,16 @@ namespace Juul
                 },
                 new Category {
                     Name = "Overpowered",
-                    Subcategories = {
-                        new SubCategory {
-                            Name = "Detected Mods",
-                            Buttons = {
-                               
-                                new Button { Name = "Set Master Client", Toggle = false, OnceEnable = Dectected.SetMaster },
-                                new Button { Name = "Set Master Client All", Toggle = false, OnceEnable = Dectected.SetMasterAll },
-                                new Button { Name = "Set Master Client Aura", Toggle = true, OnEnable = Dectected.SetMasterAura },
-                                new Button { Name = "Set Master Client On Your Touch", Toggle = true, OnEnable = Dectected.SetMasterOnTouch },
-                                new Button { Name = "Set Master Client On Touch", Toggle = true, OnEnable = Dectected.SetMasterOnYourTouch },
-
-                                new Button { Name = "Unlimit Lobby", Toggle = false, OnceEnable = Dectected.UnlimitLobby },
-
-                                new Button { Name = "Destroy All", Toggle = true, OnEnable = Overpowered.DestroyAll },
-                                new Button { Name = "Destroy Gun", Toggle = true, OnEnable = Overpowered.DestroyGun },
-                                new Button { Name = "Destroy Aura", Toggle = true, OnEnable = Overpowered.DestroyAura },
-                                new Button { Name = "Destroy On Your Touch", Toggle = true, OnEnable = Overpowered.DestroyOnTouch },
-                                new Button { Name = "Destroy On Touch", Toggle = true, OnEnable = Overpowered.DestroyOnYourTouch },
-
-                                new Button { Name = "Exile All", Toggle = true, OnEnable = Dectected.ExileAll },
-                                new Button { Name = "Exile Gun", Toggle = true, OnEnable = Dectected.ExileGun },
-
-                                new Button { Name = "Clear Custom Properties Gun", Toggle = true, OnEnable = Dectected.ClearPropertiesGun },
-
-                                new Button { Name = "Close Connection All", Toggle = true, OnEnable = Dectected.KickAll },
-                                new Button { Name = "Close Connection Gun", Toggle = true, OnEnable = Dectected.KickGun },
-
-                                new Button { Name = "PC Crash All", Toggle = true, OnEnable = Dectected.PCLagAll },
-                                new Button { Name = "PC Crash Gun", Toggle = true, OnEnable = Dectected.PCLagGun },
-                                new Button { Name = "PC Aura", Toggle = true, OnEnable = Dectected.PCLagAura },
-                                new Button { Name = "PC On Your Touch", Toggle = true, OnEnable = Dectected.PCLagOnTouch },
-                                new Button { Name = "PC On Touch", Toggle = true, OnEnable = Dectected.PCLagOnYourTouch },
-
-                                new Button { Name = "Isolate All", Toggle = true, OnEnable = Dectected.IsolateAll },
-                                new Button { Name = "Isolate Gun", Toggle = true, OnEnable = Dectected.IsolateGun },
-                                new Button { Name = "Isolate Aura", Toggle = true, OnEnable = Dectected.IsolateAura },
-                                new Button { Name = "Isolate On Your Touch", Toggle = true, OnEnable = Dectected.IsolateOnYourTouch },
-                                new Button { Name = "Isolate On Touch", Toggle = true, OnEnable = Dectected.IsolateOnTouch },
-
-                                new Button { Name = "Ghost All", Toggle = true, OnEnable = Dectected.GhostAll },
-                                new Button { Name = "Ghost Gun", Toggle = true, OnEnable = Dectected.GhostGun },
-                                new Button { Name = "Ghost Aura", Toggle = true, OnEnable = Dectected.GhostAura },
-                                new Button { Name = "Ghost On Your Touch", Toggle = true, OnEnable = Dectected.GhostOnTouch },
-                                new Button { Name = "Ghost On Touch", Toggle = true, OnEnable = Dectected.GhostOnYourTouch },
-
-                                new Button { Name = "Change Name All", Toggle = true, OnEnable = Dectected.ChangeNameAll },
-                                new Button { Name = "Change Name Gun", Toggle = true, OnEnable = Dectected.ChangeNameGun },
-                                new Button { Name = "Change Name Aura", Toggle = true, OnEnable = Dectected.ChangeNameAura },
-                                new Button { Name = "Change Name On Your Touch", Toggle = true, OnEnable = Dectected.ChangeNameOnTouch },
-                                new Button { Name = "Change Name On Touch", Toggle = true, OnEnable = Dectected.ChangeNameOnYourTouch },
-
-                                new Button { Name = "SS Mute All", Toggle = true, OnEnable = Dectected.SSMuteAll },
-                                new Button { Name = "SS Mute Gun", Toggle = true, OnEnable = Dectected.SSMuteGun },
-                                new Button { Name = "SS Mute Aura", Toggle = true, OnEnable = Dectected.SSMuteAura },
-                                new Button { Name = "SS Mute On Your Touch", Toggle = true, OnEnable = Dectected.SSMuteOnTouch },
-                                new Button { Name = "SS Mute On Touch", Toggle = true, OnEnable = Dectected.SSMuteOnYourTouch },
-
-                                new Button { Name = "Destroy Object Gun", Toggle = true, OnEnable = Dectected.DestroyObjectGun },
-                            }
-                        }
-                    },
                     Buttons = {
 
-                        //new Button { Name = "Barrel Mods W.I.P", Toggle = false, Label = true },
                         new Button { Name = "Buy Barrel", Toggle = true, OnEnable = Overpowered.BuyBarrel },
-                        //new Button { Name = "Barrel Fling Gun", Toggle = true, OnEnable = Overpowered.BarrelFlingGun },
-                        //new Button { Name = "Barrel Kick Gun", Toggle = true, OnEnable = Overpowered.BarrelKickGun },
-                        //new Button { Name = "Barrel Crash Gun", Toggle = true, OnEnable = Overpowered.BarrelCrashGun },
-                        //new Button { Name = "Barrel Fling On Touch", Toggle = true, OnEnable = Overpowered.BarrelFlingOnYourTouch, Description = "Ground Breaking" },
-                        //new Button { Name = "Barrel Fling Away On Touch", Toggle = true, OnEnable = Overpowered.BarrelFlingAwayOnYourTouch, Description = "Ground Breaking" },
-                        //new Button { Name = "Barrel Kick On Touch", Toggle = true, OnEnable = Overpowered.BarrelKickOnYourTouch, Description = "Ground Breaking" },
-
-                        new Button { Name = "Spy Room", Toggle = true, OnceEnable = Overpowered.EnableSpyRoom },
-                        new Button { Name = "Fix Spy Room", Toggle = true, OnceEnable = Overpowered.DisableSpyRoom },
 
                         new Button { Name = "Lock Room", Toggle = true, OnEnable = Overpowered.LockRoom },
                         new Button { Name = "UnLock Room", Toggle = true, OnEnable = Overpowered.UnlockRoom },
                         new Button { Name = "Spaz Room", Toggle = true, OnEnable = Overpowered.SpazRoom },
 
-                        new Button { Name = "Desync All", Toggle = true, OnEnable = Overpowered.FreezeRoom },
-                        new Button { Name = "Freeze Room", Toggle = true, OnEnable = Overpowered.FreezeRoomV2 },
+                        new Button { Name = "Desync All", Toggle = true, OnEnable = Overpowered.FreezeRoomV2 },
+                        new Button { Name = "Freeze Room", Toggle = true, OnEnable = Overpowered.FreezeRoom },
 
                         new Button { Name = "Lag All", Toggle = true, OnEnable = Overpowered.LagAll },
                         new Button { Name = "Lag Gun", Toggle = true, OnEnable = Overpowered.LagGun },
@@ -519,37 +477,48 @@ namespace Juul
                         new Button { Name = "Strong Lag On Your Touch", Toggle = true, OnEnable = Overpowered.StrongLagTouch },
                         new Button { Name = "Strong Lag On Touch", Toggle = true, OnEnable = Overpowered.StrongLagOnYourTouch },
 
-                        new Button { Name = "Break Audio All", Toggle = true, OnEnable = Overpowered.BreakAudioAll },
-                        new Button { Name = "Break Audio Gun", Toggle = true, OnEnable = Overpowered.BreakAudioGun },
                     }
                 },
                 new Category {
                     Name = "Projectiles",
                     Buttons = {
-                        //new Button { Name = "Shoot Snowballs", Toggle = true, OnEnable = Projectiles.ShootSnowBalls, OnceDisable = Projectiles.ProjectileCleanUp },
-
-                        //new Button { Name = "Shoot Big SnowBalls", Toggle = true, OnEnable = Projectiles.ShootBigSnowBalls, OnceDisable = Projectiles.ProjectileCleanUp },
-
-                        //new Button { Name = "Shoot Gifs", Toggle = true, OnEnable = Projectiles.ShootGifs, OnceDisable = Projectiles.ProjectileCleanUp },
-
-                        //new Button { Name = "Shoot Rocks", Toggle = true, OnEnable = Projectiles.ShootRocks, OnceDisable = Projectiles.ProjectileCleanUp },
-
-                        //new Button { Name = "Projectile Fling Gun", Toggle = true, OnEnable = Projectiles.FlingGun, OnceDisable = Projectiles.ProjectileCleanUp },
-
                         new Button { Name = "Anti Snowball Fing", Toggle = true, OnEnable = () => GameplayPatches.CheckForAOEKnockbackPatch.Fling = false, OnDisable = () => GameplayPatches.CheckForAOEKnockbackPatch.Fling = true },
+                    }
+                },
+                new Category {
+                    Name = "Soundboard",
+                    Buttons = { 
+
                     }
                 },
                 new Category {
                     Name = "Credits",
                     Buttons = {
                         new Button { Name = "g3if: Founder", Toggle = false, Label = true },
-                        new Button { Name = "Angel: Developer", Toggle = false, Label = true },
+                        new Button { Name = "PlopYert: Developer", Toggle = false, Label = true },  // wizzy / angel
                         new Button { Name = "Conetic: Contributor", Toggle = false, Label = true },
                         new Button { Name = "Status : Undetected", Toggle = false, Label = true },
                         new Button { Name = "made with love <3", Toggle = false, Label = true },
                     }
                 }
             };
+        }
+        public static void RefreshEnabledCategory()
+        {
+            if (Modules == null || EnabledCategory == null) return;
+            EnabledCategory.Buttons.Clear();
+            for (int i = 0; i < Modules.Length; i++)
+            {
+                if (Modules[i] == EnabledCategory) continue;
+                for (int j = 0; j < Modules[i].Buttons.Count; j++)
+                {
+                    Button btn = Modules[i].Buttons[j];
+                    if (btn.Toggle && btn.Enabled)
+                    {
+                        EnabledCategory.Buttons.Add(btn);
+                    }
+                }
+            }
         }
     }
 }
