@@ -198,13 +198,13 @@ namespace Juul
                         new Button { Name = "Name Tags", Toggle = true, OnEnable = Visual.PlayerNameESP, OnceDisable = Visual.CleanupPlayerNameESP },
 
                         new Button { Name = "Chams", Toggle = true, OnEnable = Visual.Chams, OnceDisable = Visual.CleanupChams },
-                        new Button { Name = "Infection Chams", Toggle = true, OnEnable = Visual.InfectionChams, OnceDisable = Visual.CleanupInfectionChams },
+                        //new Button { Name = "Infection Chams", Toggle = true, OnEnable = Visual.InfectionChams, OnceDisable = Visual.CleanupInfectionChams },
 
                         new Button { Name = "Bone ESP", Toggle = true, OnEnable = Visual.BoneESP, OnceDisable = Visual.CleanupBoneESP },
-                        new Button { Name = "Infection Bone ESP", Toggle = true, OnEnable = Visual.InfectionBoneESP, OnceDisable = Visual.CleanupInfectionBoneESP },
+                        //new Button { Name = "Infection Bone ESP", Toggle = true, OnEnable = Visual.InfectionBoneESP, OnceDisable = Visual.CleanupInfectionBoneESP },
 
                         new Button { Name = "Tracers", Toggle = true, OnEnable = Visual.Tracers, OnceDisable = Visual.CleanupTracers },
-                        new Button { Name = "Infection Tracers", Toggle = true, OnEnable = Visual.InfectionTracers, OnceDisable = Visual.CleanupInfectionTracers },
+                       // new Button { Name = "Infection Tracers", Toggle = true, OnEnable = Visual.InfectionTracers, OnceDisable = Visual.CleanupInfectionTracers },
 
                         new Button { Name = "2D Box ESP", Toggle = true, OnEnable = Visual.Box2DESP, OnceDisable = Visual.CleanupBox2DESP },
                         new Button { Name = "2D Corner ESP", Toggle = true, OnEnable = Visual.Box2DCornerESP, OnceDisable = Visual.CleanupBox2DCornerESP },
